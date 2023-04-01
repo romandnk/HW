@@ -1,4 +1,4 @@
-module github.com/romandnk/HW
+module github.com/romandnk/HW/hw01_hello_otus
 
 go 1.19
 
