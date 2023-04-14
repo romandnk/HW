@@ -19,7 +19,7 @@ func Unpack(s string) (string, error) {
 		// check if current symbol is digit
 		if unicode.IsDigit(cur) {
 			// check if previous symbol is digit
-			if unicode.IsDigit(prev) || prev == 0 {
+			if prev == 0 || unicode.IsDigit(prev) {
 				return "", ErrInvalidString
 			}
 			// get number of repetitions
