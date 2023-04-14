@@ -11,14 +11,11 @@ var ErrInvalidString = errors.New("invalid string")
 func Unpack(s string) (string, error) {
 	var (
 		temp   strings.Builder
-		sRune  = []rune(s)
 		result strings.Builder
-		cur    rune
 		prev   rune
 	)
 
-	for i := 0; i < len(sRune); i++ {
-		cur = sRune[i]
+	for _, cur := range s {
 		// check if current symbol is digit
 		if digit, err := strconv.Atoi(string(cur)); err == nil {
 			if prev == 0 {
