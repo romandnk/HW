@@ -2,8 +2,8 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"strconv"
 	"strings"
+	"unicode"
 )
 
 var ErrInvalidString = errors.New("invalid string")
@@ -17,14 +17,16 @@ func Unpack(s string) (string, error) {
 
 	for _, cur := range s {
 		// check if current symbol is digit
-		if digit, err := strconv.Atoi(string(cur)); err == nil {
+		if unicode.IsDigit(cur) {
 			if prev == 0 {
 				return "", ErrInvalidString
 			}
 			// check if previous symbol is digit
-			if _, err := strconv.Atoi(string(prev)); err == nil {
+			if unicode.IsDigit(prev) {
 				return "", ErrInvalidString
 			}
+			// get number of repetitions
+			digit := int(cur - '0')
 			// trim last symbol if number of repetition is 0
 			if digit == 0 {
 				temp.WriteString(result.String()[:len(result.String())-1])
