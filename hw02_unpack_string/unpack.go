@@ -20,8 +20,8 @@ func Unpack(s string) (string, error) {
 	}
 	for i := range sRune {
 		cur := sRune[i]
-		if unicode.IsDigit(cur) {
-			// check if there was a backslash
+		switch {
+		case unicode.IsDigit(cur): // check if current symbol is digit
 			if checkSlash {
 				result = append(result, cur)
 				prev = cur
@@ -37,16 +37,13 @@ func Unpack(s string) (string, error) {
 					prev = cur
 				}
 			}
-			// check if there were two backslash
-		} else if checkSlash && !unicode.IsLetter(cur) {
+		case checkSlash && !unicode.IsLetter(cur): // check if there were two backslash
 			result = append(result, '\\')
 			checkSlash = false
 			prev = cur
-			// make flag "checkSlash" true if current symbol is a backslash
-		} else if string(cur) == "\\" {
+		case string(cur) == "\\": // make flag "checkSlash" true if current symbol is a backslash
 			checkSlash = true
-			// check other symbols besides of digits and backslash
-		} else {
+		default:
 			// check if before letter was a backslash
 			if checkSlash {
 				return "", ErrInvalidString

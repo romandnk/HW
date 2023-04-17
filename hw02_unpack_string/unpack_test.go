@@ -43,10 +43,10 @@ func TestUnpackInvalidString(t *testing.T) {
 		"3abc",
 		"45",
 		// тесты, который не проходит функция
-		//"aaa10b",
-		//"a55b",
-		//`qw\ne`,
-		//`\\67`,
+		// "aaa10b",
+		// "a55b",
+		// `qw\ne`,
+		// `\\67`,
 	}
 	for _, tc := range invalidStrings {
 		tc := tc
