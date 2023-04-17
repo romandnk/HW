@@ -2,7 +2,6 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"strings"
 	"unicode"
 )
 
@@ -10,34 +9,51 @@ var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
 	var (
-		temp   strings.Builder
-		result strings.Builder
-		prev   rune
+		sRune      = []rune(s)
+		result     []rune
+		prev       rune
+		checkSlash bool
 	)
-
-	for _, cur := range s {
-		// check if current symbol is digit
+	// check if digit is on the first place
+	if len(sRune) > 0 && unicode.IsDigit(sRune[0]) {
+		return "", ErrInvalidString
+	}
+	for i := range sRune {
+		cur := sRune[i]
 		if unicode.IsDigit(cur) {
-			// check if previous symbol is digit
-			if prev == 0 || unicode.IsDigit(prev) {
+			// check if there was a backslash
+			if checkSlash {
+				result = append(result, cur)
+				prev = cur
+				checkSlash = false
+			} else {
+				numRepetition := int(cur - '0')
+				if numRepetition == 0 {
+					result = result[:len(result)-1]
+				} else {
+					for j := 0; j < numRepetition-1; j++ {
+						result = append(result, prev)
+					}
+					prev = cur
+				}
+			}
+			// check if there were two backslash
+		} else if checkSlash && !unicode.IsLetter(cur) {
+			result = append(result, '\\')
+			checkSlash = false
+			prev = cur
+			// make flag "checkSlash" true if current symbol is a backslash
+		} else if string(cur) == "\\" {
+			checkSlash = true
+			// check other symbols besides of digits and backslash
+		} else {
+			// check if before letter was a backslash
+			if checkSlash {
 				return "", ErrInvalidString
 			}
-			// get number of repetitions
-			digit := int(cur - '0')
-			// trim last symbol if number of repetition is 0
-			if digit == 0 {
-				temp.WriteString(result.String()[:len(result.String())-1])
-				result.Reset()
-				result.WriteString(temp.String())
-				temp.Reset()
-			} else {
-				result.WriteString(strings.Repeat(string(prev), digit-1))
-				prev = cur
-			}
-		} else {
+			result = append(result, cur)
 			prev = cur
-			result.WriteRune(prev)
 		}
 	}
-	return result.String(), nil
+	return string(result), nil
 }
