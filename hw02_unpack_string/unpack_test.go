@@ -26,6 +26,7 @@ func TestUnpack(t *testing.T) {
 		{input: `qwe\\\3`, expected: `qwe\3`},
 		{input: `\\a\\`, expected: `\a\`},
 		{input: `\0\\`, expected: `0\`},
+		{input: `\56a`, expected: `555555a`},
 	}
 
 	for _, tc := range tests {
@@ -42,11 +43,11 @@ func TestUnpackInvalidString(t *testing.T) {
 	invalidStrings := []string{
 		"3abc",
 		"45",
-		// тесты, который не проходит функция
-		// "aaa10b",
-		// "a55b",
-		// `qw\ne`,
-		// `\\67`,
+		`qw\ne`,
+		"aaa12b",
+		"a55b",
+		`\\67`,
+		`abc\\333`,
 	}
 	for _, tc := range invalidStrings {
 		tc := tc

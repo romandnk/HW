@@ -2,6 +2,7 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"regexp"
 	"unicode"
 )
 
@@ -16,6 +17,13 @@ func Unpack(s string) (string, error) {
 	)
 	// check if digit is on the first place
 	if len(sRune) > 0 && unicode.IsDigit(sRune[0]) {
+		return "", ErrInvalidString
+	}
+	pattern1 := `[a-z]\d\d`
+	pattern2 := `\\\\\d\d`
+	matched1, _ := regexp.MatchString(pattern1, s)
+	matched2, _ := regexp.MatchString(pattern2, s)
+	if matched1 || matched2 {
 		return "", ErrInvalidString
 	}
 	for i := range sRune {
