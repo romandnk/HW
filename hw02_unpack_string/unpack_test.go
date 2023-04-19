@@ -39,21 +39,46 @@ func TestUnpack(t *testing.T) {
 	}
 }
 
-func TestUnpackInvalidString(t *testing.T) {
-	invalidStrings := []string{
+func TestUnpackDigitOnTheFirstPlace(t *testing.T) {
+	digitOnTheFirstPlace := []string{
 		"3abc",
 		"45",
-		`qw\ne`,
-		"aaa12b",
-		"a55b",
-		`\\67`,
-		`abc\\333`,
 	}
-	for _, tc := range invalidStrings {
+	for _, tc := range digitOnTheFirstPlace {
 		tc := tc
 		t.Run(tc, func(t *testing.T) {
 			_, err := Unpack(tc)
-			require.Truef(t, errors.Is(err, ErrInvalidString), "actual error %q", err)
+			require.Truef(t, errors.Is(err, ErrDigitOnTheFirstPlace), "actual error %q", err)
+		})
+	}
+}
+
+func TestUnpackEscapeLetter(t *testing.T) {
+	escapeLetter := []string{
+		`qw\ne`,
+		`t5b8\h`,
+	}
+	for _, tc := range escapeLetter {
+		tc := tc
+		t.Run(tc, func(t *testing.T) {
+			_, err := Unpack(tc)
+			require.Truef(t, errors.Is(err, ErrEscapeLetter), "actual error %q", err)
+		})
+	}
+}
+
+func TestUnpackErrNumber(t *testing.T) {
+	numberInString := []string{
+		"aaa12b",
+		"a55b",
+		`abc\\333`,
+		`\\67`,
+	}
+	for _, tc := range numberInString {
+		tc := tc
+		t.Run(tc, func(t *testing.T) {
+			_, err := Unpack(tc)
+			require.Truef(t, errors.Is(err, ErrNumberInString), "actual error %q", err)
 		})
 	}
 }
