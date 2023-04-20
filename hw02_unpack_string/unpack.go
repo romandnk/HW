@@ -2,38 +2,39 @@ package hw02unpackstring
 
 import (
 	"errors"
-	"regexp"
 	"unicode"
 )
 
-var ErrInvalidString = errors.New("invalid string")
+var (
+	ErrDigitOnTheFirstPlace = errors.New("digit cannot be on the first place")
+	ErrEscapeLetter         = errors.New("letter cannot be escaped")
+	ErrNumberInString       = errors.New("only digits can be in the string not numbers")
+)
 
 func Unpack(s string) (string, error) {
 	var (
-		sRune      = []rune(s)
-		result     []rune
-		prev       rune
-		checkSlash bool
+		sRune          = []rune(s)
+		result         []rune
+		prev           rune
+		checkSlash     bool
+		checkLastDigit bool
 	)
 	// check if digit is on the first place
 	if len(sRune) > 0 && unicode.IsDigit(sRune[0]) {
-		return "", ErrInvalidString
-	}
-	pattern1 := `[a-z]\d\d`
-	pattern2 := `\\\\\d\d`
-	matched1, _ := regexp.MatchString(pattern1, s)
-	matched2, _ := regexp.MatchString(pattern2, s)
-	if matched1 || matched2 {
-		return "", ErrInvalidString
+		return "", ErrDigitOnTheFirstPlace
 	}
 	for i := range sRune {
 		cur := sRune[i]
 		switch {
 		case unicode.IsDigit(cur): // check if current symbol is digit
+			if checkLastDigit {
+				return "", ErrNumberInString
+			}
 			if checkSlash {
 				result = append(result, cur)
 				prev = cur
 				checkSlash = false
+				checkLastDigit = false
 			} else {
 				numRepetition := int(cur - '0')
 				if numRepetition == 0 {
@@ -44,6 +45,7 @@ func Unpack(s string) (string, error) {
 					}
 					prev = cur
 				}
+				checkLastDigit = true
 			}
 		case checkSlash && !unicode.IsLetter(cur): // check if there were two backslash
 			result = append(result, '\\')
@@ -54,8 +56,9 @@ func Unpack(s string) (string, error) {
 		default:
 			// check if before letter was a backslash
 			if checkSlash {
-				return "", ErrInvalidString
+				return "", ErrEscapeLetter
 			}
+			checkLastDigit = false
 			result = append(result, cur)
 			prev = cur
 		}
