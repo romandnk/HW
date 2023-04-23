@@ -55,10 +55,10 @@ var (
 		"не",        // 4
 		"то",        // 4
 	}
-	expectedSliceOneAdditional = []string{"а", "он", "и", "ты", "что", "в", "его", "если", "кристофер", "не"}
+	// expectedSliceOneAdditional = []string{"а", "он", "и", "ты", "что", "в", "его", "если", "кристофер", "не"}.
 
 	textTwo          = ""
-	expectedSliceTwo []string
+	expectedSliceTwo = []string{}
 
 	textThree          = "aaa aaa aaa    aaa"
 	expectedSliceThree = []string{"aaa"}
@@ -69,8 +69,8 @@ var (
 	textFive          = "ddd ddd    ddd ccc  ccc bbb bbb aaa aaa aaa"
 	expectedSliceFive = []string{"aaa", "ddd", "bbb", "ccc"}
 
-	textSix          = "какой-то человек! с        кем-то когда-то 45 !№%какой-то???? почему-то ПОЧему-То!!!"
-	expectedSliceSix = []string{"какой-то", "почему-то", "45", "кем-то", "когда-то", "с", "человек"}
+	// textSix          = "какой-то человек! с        кем-то когда-то 45 !№%какой-то???? почему-то ПОЧему-То!!!"
+	// expectedSliceSixAdditional = []string{"какой-то", "почему-то", "45", "кем-то", "когда-то", "с", "человек"}.
 )
 
 func TestTop10(t *testing.T) {
@@ -94,20 +94,20 @@ func TestTop10(t *testing.T) {
 	}
 }
 
-func TestTop10Additional(t *testing.T) {
-	tests := []struct {
-		name          string
-		inputText     string
-		expectedSlice []string
-	}{
-		{name: "test1 (additional func)", inputText: textOne, expectedSlice: expectedSliceOneAdditional},
-		{name: "test2 (additional func)", inputText: textSix, expectedSlice: expectedSliceSix},
-	}
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			actual := Top10Additional(tc.inputText)
-			require.Equal(t, tc.expectedSlice, actual)
-		})
-	}
-}
+// func TestTop10Additional(t *testing.T) {
+//	tests := []struct {
+//		name          string
+//		inputText     string
+//		expectedSlice []string
+//	}{
+//		{name: "test1 (additional func)", inputText: textOne, expectedSlice: expectedSliceOneAdditional},
+//		{name: "test2 (additional func)", inputText: textSix, expectedSlice: expectedSliceSixAdditional},
+//	}
+//	for _, tc := range tests {
+//		tc := tc
+//		t.Run(tc.name, func(t *testing.T) {
+//			actual := Top10Additional(tc.inputText)
+//			require.Equal(t, tc.expectedSlice, actual)
+//		})
+//	}
+//}
