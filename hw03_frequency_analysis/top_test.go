@@ -58,7 +58,7 @@ var (
 	// expectedSliceOneAdditional = []string{"а", "он", "и", "ты", "что", "в", "его", "если", "кристофер", "не"}.
 
 	textTwo          = ""
-	expectedSliceTwo = []string{}
+	expectedSliceTwo []string
 
 	textThree          = "aaa aaa aaa    aaa"
 	expectedSliceThree = []string{"aaa"}

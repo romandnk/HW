@@ -14,14 +14,15 @@ type count struct {
 
 func Top10(s string) []string {
 	strArr := strings.Fields(s)
+	if len(strArr) == 0 {
+		return nil
+	}
+
 	var (
 		// a map with the number of repetitions of words
 		countSameWords = make(map[string]count, len(strArr))
 		result         = make([]string, len(strArr))
 	)
-	if len(strArr) == 0 {
-		return []string{}
-	}
 
 	for i := range strArr {
 		countSameWords[strArr[i]] = count{countSameWords[strArr[i]].repetition + 1, i}
@@ -36,14 +37,12 @@ func Top10(s string) []string {
 		descendingOrderAndLexicographically := (cur == next) && result[i] < result[j]
 		return descendingOrder || descendingOrderAndLexicographically
 	})
-	n := 0
-	for n < 10 {
-		if result[n] == "" {
-			return result[:n]
+	for i := 0; i < 10; i++ {
+		if result[i] == "" {
+			return result[:i]
 		}
-		n++
 	}
-	return result[:n]
+	return result[:10]
 }
 
 // func Top10Additional(s string) []string {
