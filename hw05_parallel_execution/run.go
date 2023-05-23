@@ -13,25 +13,34 @@ type Task func() error
 func Run(tasks []Task, n, m int) error {
 	var (
 		wg           = sync.WaitGroup{}
-		tasksCh      = make(chan Task, len(tasks))
-		errorCh      = make(chan struct{})
+		tasksCh      = make(chan Task)
 		quit         = make(chan struct{})
+		mu           = sync.Mutex{}
 		actualErrors = 0
 	)
-	for _, task := range tasks {
-		tasksCh <- task
+
+	if m <= 0 {
+		return ErrErrorsLimitExceeded
 	}
-	close(tasksCh)
+
 	wg.Add(n)
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()
 			for {
 				select {
-				case task := <-tasksCh:
+				case task, ok := <-tasksCh:
+					if !ok {
+						return
+					}
 					err := task()
 					if err != nil {
-						errorCh <- struct{}{}
+						mu.Lock()
+						actualErrors++
+						if actualErrors == m {
+							close(quit)
+						}
+						mu.Unlock()
 					}
 				case <-quit:
 					return
@@ -39,14 +48,19 @@ func Run(tasks []Task, n, m int) error {
 			}
 		}()
 	}
-	for range errorCh {
-		actualErrors++
-		if actualErrors == m {
-			close(quit)
+
+	for _, task := range tasks {
+		select {
+		case <-quit:
 			wg.Wait()
 			return ErrErrorsLimitExceeded
+		default:
+			tasksCh <- task
 		}
 	}
+
+	close(tasksCh)
 	wg.Wait()
+
 	return nil
 }
