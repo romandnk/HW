@@ -117,6 +117,6 @@ func TestRun(t *testing.T) {
 
 		_ = Run(tasks, workersCount, maxErrorsCount)
 
-		require.Error(t, ErrNotEnoughGoroutine)
+		require.Error(t, ErrNotEnoughGoroutines)
 	})
 }

@@ -8,7 +8,7 @@ import (
 
 var (
 	ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
-	ErrNotEnoughGoroutine  = errors.New("number of goroutines must be more than 0")
+	ErrNotEnoughGoroutines = errors.New("number of goroutines must be more than 0")
 )
 
 type Task func() error
@@ -27,7 +27,7 @@ func Run(tasks []Task, n, m int) error {
 	}
 
 	if n <= 0 {
-		return ErrNotEnoughGoroutine
+		return ErrNotEnoughGoroutines
 	}
 
 	wg.Add(n)
