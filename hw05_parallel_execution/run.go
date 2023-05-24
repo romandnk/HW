@@ -18,7 +18,7 @@ func Run(tasks []Task, n, m int) error {
 	var (
 		wg           = sync.WaitGroup{}
 		tasksCh      = make(chan Task)
-		actualErrors int64
+		actualErrors uint64
 		quit         = make(chan struct{})
 	)
 
@@ -37,8 +37,8 @@ func Run(tasks []Task, n, m int) error {
 			for task := range tasksCh {
 				err := task()
 				if err != nil {
-					atomic.AddInt64(&actualErrors, 1)
-					if actualErrors == int64(m) {
+					atomic.AddUint64(&actualErrors, 1)
+					if value := atomic.LoadUint64(&actualErrors); value == uint64(m) {
 						close(quit)
 						return
 					}
