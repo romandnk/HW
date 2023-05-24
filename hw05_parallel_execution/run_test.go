@@ -93,4 +93,30 @@ func TestRun(t *testing.T) {
 
 		require.Error(t, ErrErrorsLimitExceeded)
 	})
+
+	t.Run("n is zero", func(t *testing.T) {
+		tasksCount := 50
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCount int32
+		var sumTime time.Duration
+
+		for i := 0; i < tasksCount; i++ {
+			taskSleep := time.Millisecond * time.Duration(rand.Intn(100))
+			sumTime += taskSleep
+
+			tasks = append(tasks, func() error {
+				time.Sleep(taskSleep)
+				atomic.AddInt32(&runTasksCount, 1)
+				return nil
+			})
+		}
+
+		workersCount := 0
+		maxErrorsCount := 5
+
+		_ = Run(tasks, workersCount, maxErrorsCount)
+
+		require.Error(t, ErrNotEnoughGoroutine)
+	})
 }
