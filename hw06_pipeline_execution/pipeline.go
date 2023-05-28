@@ -9,7 +9,7 @@ type (
 type Stage func(in In) (out Out)
 
 func ExecutePipeline(in In, done In, stages ...Stage) Out {
-	result := make(Out)
+	result := in
 	for _, stage := range stages {
 		chain := make(Bi)
 		go func(input In, chain Bi) {
@@ -25,7 +25,7 @@ func ExecutePipeline(in In, done In, stages ...Stage) Out {
 					chain <- value
 				}
 			}
-		}(in, chain)
+		}(result, chain)
 		result = stage(chain)
 	}
 	return result
