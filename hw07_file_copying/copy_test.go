@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require" //nolint:depguard
+	"github.com/stretchr/testify/require"
 )
 
 var (
