@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cheggaaa/pb/v3" //nolint:depguard
+	"github.com/cheggaaa/pb/v3"
 )
 
 var (
