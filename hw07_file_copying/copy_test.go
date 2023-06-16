@@ -40,6 +40,33 @@ func TestCopyErrOffsetExceedsFileSize(t *testing.T) {
 			expectedError: ErrNoPermission,
 			accessRules:   0o000,
 		},
+		{
+			name:          "paths are equal",
+			fromPath:      fromPathTest,
+			toPath:        fromPathTest,
+			offset:        0,
+			limit:         0,
+			expectedError: ErrTheSamePaths,
+			accessRules:   0o777,
+		},
+		{
+			name:          "offset less than 0",
+			fromPath:      fromPathTest,
+			toPath:        toPathTest,
+			offset:        -1,
+			limit:         0,
+			expectedError: ErrNegativeOffset,
+			accessRules:   0o000,
+		},
+		{
+			name:          "limit less than 0",
+			fromPath:      fromPathTest,
+			toPath:        toPathTest,
+			offset:        0,
+			limit:         -1,
+			expectedError: ErrNegativeLimit,
+			accessRules:   0o000,
+		},
 	}
 	for _, tc := range testCases {
 		tc := tc
@@ -52,11 +79,10 @@ func TestCopyErrOffsetExceedsFileSize(t *testing.T) {
 
 			require.Error(t, err)
 			require.EqualError(t, err, tc.expectedError.Error())
-
-			_ = os.Remove(tc.toPath)
 		})
 	}
 	if err := os.Chmod(fromPathTest, 0o777); err != nil {
 		t.Error(err)
 	}
+	_ = os.Remove(toPathTest)
 }

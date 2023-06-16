@@ -13,11 +13,25 @@ var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 	ErrFileNotExist          = errors.New("file does not exist")
 	ErrNoPermission          = errors.New("no permission to the file")
-	ErrNoReadPermission      = errors.New("no permission to read the file")
 	ErrNoPermissionCreatFile = errors.New("no permission to create the file")
+	ErrTheSamePaths          = errors.New("\"fromPath\" cannot be equal to \"toPath\"")
+	ErrNegativeLimit         = errors.New("limit cannot be negative number")
+	ErrNegativeOffset        = errors.New("offset cannot be negative number")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
+	if fromPath == toPath {
+		return ErrTheSamePaths
+	}
+
+	if limit < 0 {
+		return ErrNegativeLimit
+	}
+
+	if offset < 0 {
+		return ErrNegativeOffset
+	}
+
 	fileFrom, err := os.Open(fromPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -33,11 +47,6 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	fileFromInfo, err := fileFrom.Stat()
 	if err != nil {
 		return err
-	}
-
-	// check on a read permission of the file
-	if fileFromInfo.Mode().Perm()&0400 == 0 { //nolint:gofumpt
-		return ErrNoReadPermission
 	}
 
 	// create directories in the toPath if they don't exist
@@ -66,29 +75,18 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		return err
 	}
 
-	// use func CopyN if limit more than zero
-	if limit > 0 {
-		bar := pb.Full.Start64(limit)
-		barReader := bar.NewProxyReader(fileFrom)
-
-		_, err = io.CopyN(fileTo, barReader, limit)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
-			return err
-		}
-
-		bar.Finish()
-
-		return nil
+	if limit == 0 {
+		limit = fileFromInfo.Size() - offset
 	}
 
-	bar := pb.Full.Start64(fileFromInfo.Size() - offset)
+	bar := pb.Full.Start64(limit)
 	barReader := bar.NewProxyReader(fileFrom)
 
-	_, err = io.Copy(fileTo, barReader)
+	_, err = io.CopyN(fileTo, barReader, limit)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
 		return err
 	}
 
