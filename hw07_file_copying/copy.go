@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,16 +15,12 @@ var (
 	ErrFileNotExist          = errors.New("file does not exist")
 	ErrNoPermission          = errors.New("no permission to the file")
 	ErrNoPermissionCreatFile = errors.New("no permission to create the file")
-	ErrTheSamePaths          = errors.New("\"fromPath\" cannot be equal to \"toPath\"")
 	ErrNegativeLimit         = errors.New("limit cannot be negative number")
 	ErrNegativeOffset        = errors.New("offset cannot be negative number")
+	ErrEqualPaths            = errors.New("paths are equal")
 )
 
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	if fromPath == toPath {
-		return ErrTheSamePaths
-	}
-
 	if limit < 0 {
 		return ErrNegativeLimit
 	}
@@ -65,6 +62,10 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer fileTo.Close()
 
+	if err := comparePaths(fromPath, toPath); err != nil {
+		return err
+	}
+
 	// check on error that offset exceeds file size
 	if fileFromInfo.Size() < offset {
 		return ErrOffsetExceedsFileSize
@@ -91,6 +92,34 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 
 	bar.Finish()
+
+	return nil
+}
+
+func comparePaths(path1, path2 string) error {
+	normalizedPath1, err := filepath.Abs(filepath.Clean(path1))
+	if err != nil {
+		return fmt.Errorf("error normalize path1")
+	}
+
+	normalizedPath2, err := filepath.Abs(filepath.Clean(path2))
+	if err != nil {
+		return fmt.Errorf("error normalize path2")
+	}
+
+	file1Info, err := os.Stat(normalizedPath1)
+	if err != nil {
+		return err
+	}
+
+	file2Info, err := os.Stat(normalizedPath2)
+	if err != nil {
+		return err
+	}
+
+	if ok := os.SameFile(file1Info, file2Info); ok {
+		return ErrEqualPaths
+	}
 
 	return nil
 }
