@@ -42,8 +42,8 @@ func TestCopyErrOffsetExceedsFileSize(t *testing.T) {
 		},
 		{
 			name:          "paths are equal",
-			fromPath:      fromPathTest,
-			toPath:        "testdata/../testdata/input.txt",
+			fromPath:      toPathTest,
+			toPath:        "tmp/../tmp/output.txt",
 			offset:        0,
 			limit:         0,
 			expectedError: ErrEqualPaths,
