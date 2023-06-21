@@ -12,7 +12,8 @@ import (
 
 var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
-	ErrFileNotExist          = errors.New("file does not exist")
+	ErrFromPathFileNotExist  = errors.New("file fromPath does not exist")
+	ErrToPathFileNotExist    = errors.New("file toPath does not exist")
 	ErrNoPermission          = errors.New("no permission to the file")
 	ErrNoPermissionCreatFile = errors.New("no permission to create the file")
 	ErrNegativeLimit         = errors.New("limit cannot be negative number")
@@ -32,7 +33,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	fileFrom, err := os.Open(fromPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return ErrFileNotExist
+			return ErrFromPathFileNotExist
 		}
 		if os.IsPermission(err) {
 			return ErrNoPermission
@@ -99,11 +100,17 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 func comparePaths(path1, path2 string) error {
 	normalizedPath1, err := filepath.Abs(filepath.Clean(path1))
 	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrFromPathFileNotExist
+		}
 		return fmt.Errorf("error normalize path1")
 	}
 
 	normalizedPath2, err := filepath.Abs(filepath.Clean(path2))
 	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrToPathFileNotExist
+		}
 		return fmt.Errorf("error normalize path2")
 	}
 
