@@ -59,23 +59,16 @@ func ReadDir(dir string) (Environment, error) {
 				firstLine = strings.ReplaceAll(firstLine, "\x00", "\n")
 			}
 
-			if firstLine == "" {
+			if info.Size() == 0 {
 				envs[fileName] = EnvValue{
 					Value:      "",
 					NeedRemove: true,
 				}
 				return nil
 			}
-			if _, ok := envs[fileName]; ok {
-				envs[fileName] = EnvValue{
-					Value:      firstLine,
-					NeedRemove: true,
-				}
-			} else {
-				envs[fileName] = EnvValue{
-					Value:      firstLine,
-					NeedRemove: false,
-				}
+			envs[fileName] = EnvValue{
+				Value:      firstLine,
+				NeedRemove: false,
 			}
 		}
 

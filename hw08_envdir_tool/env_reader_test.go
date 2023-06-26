@@ -7,42 +7,57 @@ import (
 )
 
 func TestReadDirWithoutErrors(t *testing.T) {
-	path := "./testdata/env"
-	actual, err := ReadDir(path)
-
-	expected := Environment{
-		"BAR": EnvValue{
-			Value:      "newBar",
-			NeedRemove: true,
+	testCases := []struct {
+		path     string
+		expected Environment
+	}{
+		{
+			path: "./testdata/env",
+			expected: Environment{
+				"BAR": EnvValue{
+					Value:      "bar",
+					NeedRemove: false,
+				},
+				"EMPTY": EnvValue{
+					Value:      "",
+					NeedRemove: false,
+				},
+				"FOO": EnvValue{
+					Value:      "   foo\nwith new line",
+					NeedRemove: false,
+				},
+				"HELLO": EnvValue{
+					Value:      `"hello"`,
+					NeedRemove: false,
+				},
+				"UNSET": EnvValue{
+					Value:      "",
+					NeedRemove: true,
+				},
+			},
 		},
-		"EMPTY": EnvValue{
-			Value:      "",
-			NeedRemove: true,
-		},
-		"FOO": EnvValue{
-			Value:      "   foo\nwith new line",
-			NeedRemove: false,
-		},
-		"HELLO": EnvValue{
-			Value:      `"hello"`,
-			NeedRemove: false,
-		},
-		"UNSET": EnvValue{
-			Value:      "",
-			NeedRemove: true,
-		},
-		"SPACESRIGHT": EnvValue{
-			Value:      "         SPACE",
-			NeedRemove: false,
-		},
-		"SMALL": EnvValue{
-			Value:      "    small",
-			NeedRemove: false,
+		{
+			path: "./testdata/my_test_env",
+			expected: Environment{
+				"SMALL": EnvValue{
+					Value:      "    small",
+					NeedRemove: false,
+				},
+				"SPACESRIGHT": EnvValue{
+					Value:      "         SPACE",
+					NeedRemove: false,
+				},
+			},
 		},
 	}
+	for _, tc := range testCases {
+		t.Run("successful", func(t *testing.T) {
+			actualEnv, err := ReadDir(tc.path)
 
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, actualEnv)
+		})
+	}
 }
 
 func TestReadDirWithError(t *testing.T) {

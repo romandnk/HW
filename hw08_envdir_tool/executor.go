@@ -10,33 +10,43 @@ import (
 func RunCmd(cmdArgs []string, env Environment) (returnCode int) {
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...) //nolint:gosec
 
-	envSlice := make([]string, 0, len(env))
-
-	for key, value := range env {
-		var keyValueEnv strings.Builder
-		if value.NeedRemove {
-			err := os.Unsetenv(key)
-			if err != nil {
-				return 126
-			}
-			if value.Value != "" {
-				keyValueEnv.WriteString(key + "=" + value.Value)
-			}
-			continue
-		}
-		keyValueEnv.WriteString(key + "=" + value.Value)
-		envSlice = append(envSlice, keyValueEnv.String())
-	}
-
-	cmd.Env = append(os.Environ(), envSlice...)
-
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 
+	envs := setEnvs(env)
+
+	cmd.Env = envs
+
 	if err := cmd.Run(); err != nil {
-		return 1
+		return cmd.ProcessState.ExitCode()
 	}
 
 	return 0
+}
+
+func setEnvs(env Environment) []string {
+	globalEnv := make(map[string]string, len(os.Environ()))
+	resultEnvs := make([]string, 0, len(os.Environ())+len(env))
+
+	for _, val := range os.Environ() {
+		envKeyVal := strings.Split(val, "=")
+		globalEnv[envKeyVal[0]] = envKeyVal[1]
+	}
+
+	for key, val := range env {
+		if val.NeedRemove {
+			delete(globalEnv, key)
+			continue
+		}
+		globalEnv[key] = val.Value
+	}
+
+	for key, val := range globalEnv {
+		var keyValueEnv strings.Builder
+		keyValueEnv.WriteString(key + "=" + val)
+		resultEnvs = append(resultEnvs, keyValueEnv.String())
+	}
+
+	return resultEnvs
 }

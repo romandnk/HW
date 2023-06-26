@@ -8,6 +8,10 @@ import (
 func main() {
 	args := os.Args
 
+	if len(args) < 3 {
+		log.Fatalf("too many arguments")
+	}
+
 	path := args[1]
 
 	_, err := os.Stat(path)
