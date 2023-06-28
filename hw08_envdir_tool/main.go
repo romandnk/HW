@@ -28,7 +28,5 @@ func main() {
 	}
 
 	returnCode := RunCmd(args[2:], env)
-	if returnCode == 1 || returnCode == 126 {
-		log.Fatal("error")
-	}
+	os.Exit(returnCode)
 }

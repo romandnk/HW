@@ -58,14 +58,6 @@ func ReadDir(dir string) (Environment, error) {
 			if strings.ContainsRune(firstLine, '\x00') {
 				firstLine = strings.ReplaceAll(firstLine, "\x00", "\n")
 			}
-
-			if info.Size() == 0 {
-				envs[fileName] = EnvValue{
-					Value:      "",
-					NeedRemove: true,
-				}
-				return nil
-			}
 			envs[fileName] = EnvValue{
 				Value:      firstLine,
 				NeedRemove: false,
