@@ -2,7 +2,6 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -54,8 +53,25 @@ func TestValidate(t *testing.T) {
 				Phones: []string{"88005553535"},
 				meta:   []byte{},
 			},
-			expectedErr: ValidationErrors{},
+			expectedErr: nil,
 		},
+		//{
+		//	in: User{
+		//		ID:     "uuidd",
+		//		Name:   "TestOneName",
+		//		Age:    19,
+		//		Email:  "test_email@yandex.com",
+		//		Role:   "stuff",
+		//		Phones: []string{"88005553535"},
+		//		meta:   []byte{},
+		//	},
+		//	expectedErr: ValidationErrors{
+		//		ValidationError{
+		//			Field: "ID",
+		//			Err:   fmt.Errorf("len of string does not match with condition, value: uuidd"),
+		//		},
+		//	},
+		// },
 	}
 
 	for i, tt := range tests {
@@ -65,13 +81,12 @@ func TestValidate(t *testing.T) {
 
 			err := Validate(tt.in)
 
-			var validationErrors, expectedErrors ValidationErrors
+			var validationErrors ValidationErrors
 
-			if errors.As(err, &validationErrors) && errors.As(tt.expectedErr, &expectedErrors) {
-				for j, e := range validationErrors {
-					res := errors.Is(e.Err, (expectedErrors)[j].Err)
-					require.True(t, res)
-				}
+			require.ErrorAs(t, err, &validationErrors)
+
+			for _, e := range validationErrors {
+				require.Equal(t, tt.expectedErr, e.Err.Error())
 			}
 		})
 	}

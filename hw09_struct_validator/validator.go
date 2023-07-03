@@ -34,13 +34,14 @@ type ValidationErrors []ValidationError
 func (v ValidationErrors) Error() string {
 	var resultString strings.Builder
 	for _, err := range v {
-		resultString.WriteString(fmt.Sprintf("%s: %s\n", err.Field, err.Err.Error()))
+		resultString.WriteString(fmt.Sprintf("%s - %s", err.Field, err.Err.Error()))
 	}
 	return resultString.String()
 }
 
+//nolint:gocognit
 func Validate(v interface{}) error {
-	resultErrors := ValidationErrors{}
+	resultErrors := make(ValidationErrors, 0)
 
 	val := reflect.ValueOf(v)
 
@@ -60,41 +61,45 @@ func Validate(v interface{}) error {
 		field := valT.Field(i)
 		valField := val.Field(i)
 
-		// check if the field of the struct is a public
-		if field.PkgPath == "" {
+		// check if the field of the struct is public
+		if field.PkgPath == "" { //nolint:nestif
 			if validateField, ok := field.Tag.Lookup("validate"); ok {
 				switch field.Type.Kind() { //nolint:exhaustive
 				case reflect.Int:
-					err := validateInt(valField.Int(), validateField)
-					resultErrors = append(resultErrors, ValidationError{
-						Field: valField.String(),
-						Err:   err,
-					})
+					if err := validateInt(valField.Int(), validateField); err != nil {
+						resultErrors = append(resultErrors, ValidationError{
+							Field: field.Name,
+							Err:   err,
+						})
+					}
 				case reflect.String:
-					err := validateString(valField.String(), validateField)
-					resultErrors = append(resultErrors, ValidationError{
-						Field: valField.String(),
-						Err:   err,
-					})
+					if err := validateString(valField.String(), validateField); err != nil {
+						resultErrors = append(resultErrors, ValidationError{
+							Field: field.Name,
+							Err:   err,
+						})
+					}
 				case reflect.Slice:
 					switch field.Type.Elem().Kind() { //nolint:exhaustive
 					case reflect.Int:
 						for i := 0; i < valField.Len(); i++ {
 							elem := valField.Index(i).Int()
-							err := validateInt(elem, validateField)
-							resultErrors = append(resultErrors, ValidationError{
-								Field: valField.String(),
-								Err:   err,
-							})
+							if err := validateInt(elem, validateField); err != nil {
+								resultErrors = append(resultErrors, ValidationError{
+									Field: field.Name,
+									Err:   err,
+								})
+							}
 						}
 					case reflect.String:
 						for i := 0; i < valField.Len(); i++ {
 							elem := valField.Index(i).String()
-							err := validateString(elem, validateField)
-							resultErrors = append(resultErrors, ValidationError{
-								Field: valField.String(),
-								Err:   err,
-							})
+							if err := validateString(elem, validateField); err != nil {
+								resultErrors = append(resultErrors, ValidationError{
+									Field: field.Name,
+									Err:   err,
+								})
+							}
 						}
 					default:
 						return ErrWrongType
@@ -156,7 +161,7 @@ func validateInt(fieldVal int64, validateField string) error {
 		case "min":
 			if ok := possibleConditions["min"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%s: min with in", ErrMultipleCondition.Error())
+					return fmt.Errorf("%w: min with in", ErrMultipleCondition)
 				}
 
 				possibleConditions["min"] = true
@@ -167,13 +172,13 @@ func validateInt(fieldVal int64, validateField string) error {
 				}
 
 				if fieldVal < int64(value) {
-					return fmt.Errorf("%d: %s", fieldVal, ErrTooSmallValue.Error())
+					return fmt.Errorf("%w, value: %d", ErrTooSmallValue, fieldVal)
 				}
 			}
 		case "max":
 			if ok := possibleConditions["max"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%s: max with in", ErrMultipleCondition.Error())
+					return fmt.Errorf("%w: max with in", ErrMultipleCondition)
 				}
 
 				possibleConditions["max"] = true
@@ -184,7 +189,7 @@ func validateInt(fieldVal int64, validateField string) error {
 				}
 
 				if fieldVal > int64(value) {
-					return fmt.Errorf("%d: %s", fieldVal, ErrTooBigValue.Error())
+					return fmt.Errorf("%w, value: %d", ErrTooBigValue, fieldVal)
 				}
 			}
 		}
@@ -235,7 +240,7 @@ func validateString(fieldVal string, validateField string) error {
 		case "len":
 			if ok := possibleConditions["len"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%s: len with in", ErrMultipleCondition.Error())
+					return fmt.Errorf("%w: len with in", ErrMultipleCondition)
 				}
 				possibleConditions["len"] = true
 
@@ -245,13 +250,13 @@ func validateString(fieldVal string, validateField string) error {
 				}
 
 				if utf8.RuneCountInString(fieldVal) != mustLen {
-					return fmt.Errorf("%s: %s", fieldVal, ErrInvalidLen.Error())
+					return fmt.Errorf("%w, value: %s", ErrInvalidLen, fieldVal)
 				}
 			}
 		case "regexp":
 			if ok := possibleConditions["regexp"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%s: regexp with in", ErrMultipleCondition.Error())
+					return fmt.Errorf("%w: regexp with in", ErrMultipleCondition)
 				}
 
 				possibleConditions["regexp"] = true
@@ -262,7 +267,7 @@ func validateString(fieldVal string, validateField string) error {
 				}
 
 				if !match {
-					return fmt.Errorf("%s: %s", fieldVal, ErrStrNotMatch.Error())
+					return fmt.Errorf("%w, value: %s", ErrStrNotMatch, fieldVal)
 				}
 			}
 		}
