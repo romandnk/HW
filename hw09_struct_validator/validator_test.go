@@ -2,8 +2,11 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -11,13 +14,13 @@ type UserRole string
 // Test the function on different structures and other types.
 type (
 	User struct {
-		ID     string `json:"id" validate:"len:36"`
+		ID     string `json:"id" validate:"len:4"`
 		Name   string
 		Age    int             `validate:"min:18|max:50"`
 		Email  string          `validate:"regexp:^\\w+@\\w+\\.\\w+$"`
 		Role   UserRole        `validate:"in:admin,stuff"`
 		Phones []string        `validate:"len:11"`
-		meta   json.RawMessage //nolint:unused
+		meta   json.RawMessage //nolint:nolintlint
 	}
 
 	App struct {
@@ -42,10 +45,17 @@ func TestValidate(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			// Place your code here.
+			in: User{
+				ID:     "uuid",
+				Name:   "TestOneName",
+				Age:    19,
+				Email:  "test_email@yandex.com",
+				Role:   "stuff",
+				Phones: []string{"88005553535"},
+				meta:   []byte{},
+			},
+			expectedErr: ValidationErrors{},
 		},
-		// ...
-		// Place your code here.
 	}
 
 	for i, tt := range tests {
@@ -53,8 +63,16 @@ func TestValidate(t *testing.T) {
 			tt := tt
 			t.Parallel()
 
-			// Place your code here.
-			_ = tt
+			err := Validate(tt.in)
+
+			var validationErrors, expectedErrors ValidationErrors
+
+			if errors.As(err, &validationErrors) && errors.As(tt.expectedErr, &expectedErrors) {
+				for j, e := range validationErrors {
+					res := errors.Is(e.Err, (expectedErrors)[j].Err)
+					require.True(t, res)
+				}
+			}
 		})
 	}
 }
