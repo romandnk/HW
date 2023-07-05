@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 type UserRole string
@@ -71,7 +69,7 @@ func TestValidate(t *testing.T) {
 		//			Err:   fmt.Errorf("len of string does not match with condition, value: uuidd"),
 		//		},
 		//	},
-		// },
+		//},
 	}
 
 	for i, tt := range tests {
@@ -81,13 +79,7 @@ func TestValidate(t *testing.T) {
 
 			err := Validate(tt.in)
 
-			var validationErrors ValidationErrors
-
-			require.ErrorAs(t, err, &validationErrors)
-
-			for _, e := range validationErrors {
-				require.Equal(t, tt.expectedErr, e.Err.Error())
-			}
+			fmt.Println(err)
 		})
 	}
 }

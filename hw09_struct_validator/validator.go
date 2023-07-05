@@ -41,8 +41,6 @@ func (v ValidationErrors) Error() string {
 
 //nolint:gocognit
 func Validate(v interface{}) error {
-	resultErrors := make(ValidationErrors, 0)
-
 	val := reflect.ValueOf(v)
 
 	// if kind of v is pointer then dereference the v
@@ -57,57 +55,60 @@ func Validate(v interface{}) error {
 
 	valT := val.Type()
 
+	resultErrors := make(ValidationErrors, 0, valT.NumField())
+
 	for i := 0; i < valT.NumField(); i++ {
 		field := valT.Field(i)
 		valField := val.Field(i)
 
 		// check if the field of the struct is public
-		if field.PkgPath == "" { //nolint:nestif
-			if validateField, ok := field.Tag.Lookup("validate"); ok {
-				switch field.Type.Kind() { //nolint:exhaustive
-				case reflect.Int:
-					if err := validateInt(valField.Int(), validateField); err != nil {
-						resultErrors = append(resultErrors, ValidationError{
-							Field: field.Name,
-							Err:   err,
-						})
-					}
-				case reflect.String:
-					if err := validateString(valField.String(), validateField); err != nil {
-						resultErrors = append(resultErrors, ValidationError{
-							Field: field.Name,
-							Err:   err,
-						})
-					}
-				case reflect.Slice:
-					switch field.Type.Elem().Kind() { //nolint:exhaustive
-					case reflect.Int:
-						for i := 0; i < valField.Len(); i++ {
-							elem := valField.Index(i).Int()
-							if err := validateInt(elem, validateField); err != nil {
-								resultErrors = append(resultErrors, ValidationError{
-									Field: field.Name,
-									Err:   err,
-								})
-							}
-						}
-					case reflect.String:
-						for i := 0; i < valField.Len(); i++ {
-							elem := valField.Index(i).String()
-							if err := validateString(elem, validateField); err != nil {
-								resultErrors = append(resultErrors, ValidationError{
-									Field: field.Name,
-									Err:   err,
-								})
-							}
-						}
-					default:
-						return ErrWrongType
-					}
-				default:
-					return ErrWrongType
-				}
+		if field.PkgPath != "" {
+			continue
+		}
+
+		validateField, ok := field.Tag.Lookup("validate")
+		if !ok {
+			continue
+		}
+
+		switch field.Type.Kind() { //nolint:exhaustive
+		case reflect.Int:
+			err := validateInt(valField.Int(), validateField)
+			resultErrors, err = checkError(resultErrors, field.Name, err)
+			if err != nil {
+				return err
 			}
+		case reflect.String:
+			err := validateString(valField.String(), validateField)
+			resultErrors, err = checkError(resultErrors, field.Name, err)
+			if err != nil {
+				return err
+			}
+		case reflect.Slice:
+			switch field.Type.Elem().Kind() { //nolint:exhaustive
+			case reflect.Int:
+				for i := 0; i < valField.Len(); i++ {
+					elem := valField.Index(i).Int()
+					err := validateInt(elem, validateField)
+					resultErrors, err = checkError(resultErrors, field.Name, err)
+					if err != nil {
+						return err
+					}
+				}
+			case reflect.String:
+				for i := 0; i < valField.Len(); i++ {
+					elem := valField.Index(i).String()
+					err := validateString(elem, validateField)
+					resultErrors, err = checkError(resultErrors, field.Name, err)
+					if err != nil {
+						return err
+					}
+				}
+			default:
+				return ErrWrongType
+			}
+		default:
+			return ErrWrongType
 		}
 	}
 
@@ -273,4 +274,26 @@ func validateString(fieldVal string, validateField string) error {
 		}
 	}
 	return nil
+}
+
+func checkError(outResult ValidationErrors, fieldName string, err error) (ValidationErrors, error) {
+	systemErrors := map[error]struct{}{
+		ErrCompileRegExp:                         {},
+		fmt.Errorf("len: %w", ErrValueNotNumber): {},
+		ErrInvalidValidationParameters:           {},
+		fmt.Errorf("in: %w", ErrValueNotNumber):  {},
+		fmt.Errorf("min: %w", ErrValueNotNumber): {},
+		fmt.Errorf("max: %w", ErrValueNotNumber): {},
+	}
+
+	if _, ok := systemErrors[err]; ok {
+		return outResult, err
+	}
+
+	outResult = append(outResult, ValidationError{
+		Field: fieldName,
+		Err:   err,
+	})
+
+	return outResult, nil
 }
