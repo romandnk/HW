@@ -2,7 +2,6 @@ package hw09structvalidator
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -13,7 +12,6 @@ import (
 var (
 	ErrNotStruct                   = errors.New("input data is not a struct")
 	ErrInvalidValidationParameters = errors.New("invalid validation parameters")
-	ErrValueNotNumber              = errors.New("the parameter value must be a number")
 	ErrTooSmallValue               = errors.New("value must be bigger")
 	ErrTooBigValue                 = errors.New("value must be smaller")
 	ErrNumberNotInSet              = errors.New("number is not in specified set")
@@ -22,6 +20,10 @@ var (
 	ErrCompileRegExp               = errors.New("error compiling regular expression")
 	ErrStrNotMatch                 = errors.New("string does not match with regular expression")
 	ErrWrongType                   = errors.New("can validate only int, string, []int, []string")
+	ErrWrongInCond                 = errors.New("in must be array with numbers")
+	ErrWrongMinCond                = errors.New("min must be a number")
+	ErrWrongLenCond                = errors.New("len must be a number")
+	ErrWrongMaxCond                = errors.New("max must be a number")
 )
 
 type ValidationError struct {
@@ -34,12 +36,12 @@ type ValidationErrors []ValidationError
 func (v ValidationErrors) Error() string {
 	var resultString strings.Builder
 	for _, err := range v {
-		resultString.WriteString(fmt.Sprintf("%s - %s", err.Field, err.Err.Error()))
+		resultString.WriteString(err.Field + ": " + err.Err.Error())
 	}
 	return resultString.String()
 }
 
-//nolint:gocognit
+
 func Validate(v interface{}) error {
 	val := reflect.ValueOf(v)
 
@@ -56,10 +58,15 @@ func Validate(v interface{}) error {
 	valT := val.Type()
 
 	resultErrors := make(ValidationErrors, 0, valT.NumField())
+	var (
+		exit bool
+		err  error
+	)
 
 	for i := 0; i < valT.NumField(); i++ {
 		field := valT.Field(i)
 		valField := val.Field(i)
+		nameField := field.Name
 
 		// check if the field of the struct is public
 		if field.PkgPath != "" {
@@ -73,42 +80,33 @@ func Validate(v interface{}) error {
 
 		switch field.Type.Kind() { //nolint:exhaustive
 		case reflect.Int:
-			err := validateInt(valField.Int(), validateField)
-			resultErrors, err = checkError(resultErrors, field.Name, err)
-			if err != nil {
-				return err
-			}
+			err = validateInt(valField.Int(), validateField)
+			resultErrors, exit = checkError(resultErrors, nameField, err)
 		case reflect.String:
-			err := validateString(valField.String(), validateField)
-			resultErrors, err = checkError(resultErrors, field.Name, err)
-			if err != nil {
-				return err
-			}
+			err = validateString(valField.String(), validateField)
+			resultErrors, exit = checkError(resultErrors, nameField, err)
 		case reflect.Slice:
 			switch field.Type.Elem().Kind() { //nolint:exhaustive
 			case reflect.Int:
 				for i := 0; i < valField.Len(); i++ {
 					elem := valField.Index(i).Int()
-					err := validateInt(elem, validateField)
-					resultErrors, err = checkError(resultErrors, field.Name, err)
-					if err != nil {
-						return err
-					}
+					err = validateInt(elem, validateField)
+					resultErrors, exit = checkError(resultErrors, nameField, err)
 				}
 			case reflect.String:
 				for i := 0; i < valField.Len(); i++ {
 					elem := valField.Index(i).String()
-					err := validateString(elem, validateField)
-					resultErrors, err = checkError(resultErrors, field.Name, err)
-					if err != nil {
-						return err
-					}
+					err = validateString(elem, validateField)
+					resultErrors, exit = checkError(resultErrors, nameField, err)
 				}
 			default:
 				return ErrWrongType
 			}
 		default:
 			return ErrWrongType
+		}
+		if exit {
+			return err
 		}
 	}
 
@@ -147,7 +145,7 @@ func validateInt(fieldVal int64, validateField string) error {
 				for _, valStr := range numberSet {
 					valInt, err := strconv.Atoi(valStr)
 					if err != nil {
-						return fmt.Errorf("in: %w", ErrValueNotNumber)
+						return ErrWrongInCond
 					}
 					if int64(valInt) == fieldVal {
 						isFound = true
@@ -162,35 +160,35 @@ func validateInt(fieldVal int64, validateField string) error {
 		case "min":
 			if ok := possibleConditions["min"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%w: min with in", ErrMultipleCondition)
+					return ErrMultipleCondition
 				}
 
 				possibleConditions["min"] = true
 
 				value, err := strconv.Atoi(condition)
 				if err != nil {
-					return fmt.Errorf("min: %w", ErrValueNotNumber)
+					return ErrWrongMinCond
 				}
 
 				if fieldVal < int64(value) {
-					return fmt.Errorf("%w, value: %d", ErrTooSmallValue, fieldVal)
+					return ErrTooSmallValue
 				}
 			}
 		case "max":
 			if ok := possibleConditions["max"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%w: max with in", ErrMultipleCondition)
+					return ErrMultipleCondition
 				}
 
 				possibleConditions["max"] = true
 
 				value, err := strconv.Atoi(condition)
 				if err != nil {
-					return fmt.Errorf("max: %w", ErrValueNotNumber)
+					return ErrWrongMaxCond
 				}
 
 				if fieldVal > int64(value) {
-					return fmt.Errorf("%w, value: %d", ErrTooBigValue, fieldVal)
+					return ErrTooBigValue
 				}
 			}
 		}
@@ -241,23 +239,23 @@ func validateString(fieldVal string, validateField string) error {
 		case "len":
 			if ok := possibleConditions["len"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%w: len with in", ErrMultipleCondition)
+					return ErrMultipleCondition
 				}
 				possibleConditions["len"] = true
 
 				mustLen, err := strconv.Atoi(condition)
 				if err != nil {
-					return fmt.Errorf("len: %w", ErrValueNotNumber)
+					return ErrWrongLenCond
 				}
 
 				if utf8.RuneCountInString(fieldVal) != mustLen {
-					return fmt.Errorf("%w, value: %s", ErrInvalidLen, fieldVal)
+					return ErrInvalidLen
 				}
 			}
 		case "regexp":
 			if ok := possibleConditions["regexp"]; !ok {
 				if possibleConditions["in"] {
-					return fmt.Errorf("%w: regexp with in", ErrMultipleCondition)
+					return ErrMultipleCondition
 				}
 
 				possibleConditions["regexp"] = true
@@ -268,7 +266,7 @@ func validateString(fieldVal string, validateField string) error {
 				}
 
 				if !match {
-					return fmt.Errorf("%w, value: %s", ErrStrNotMatch, fieldVal)
+					return ErrStrNotMatch
 				}
 			}
 		}
@@ -276,18 +274,17 @@ func validateString(fieldVal string, validateField string) error {
 	return nil
 }
 
-func checkError(outResult ValidationErrors, fieldName string, err error) (ValidationErrors, error) {
+func checkError(outResult ValidationErrors, fieldName string, err error) (ValidationErrors, bool) {
 	systemErrors := map[error]struct{}{
-		ErrCompileRegExp:                         {},
-		fmt.Errorf("len: %w", ErrValueNotNumber): {},
-		ErrInvalidValidationParameters:           {},
-		fmt.Errorf("in: %w", ErrValueNotNumber):  {},
-		fmt.Errorf("min: %w", ErrValueNotNumber): {},
-		fmt.Errorf("max: %w", ErrValueNotNumber): {},
+		ErrCompileRegExp: {},
+		ErrWrongLenCond:  {},
+		ErrWrongInCond:   {},
+		ErrWrongMinCond:  {},
+		ErrWrongMaxCond:  {},
 	}
 
 	if _, ok := systemErrors[err]; ok {
-		return outResult, err
+		return outResult, true
 	}
 
 	outResult = append(outResult, ValidationError{
@@ -295,5 +292,5 @@ func checkError(outResult ValidationErrors, fieldName string, err error) (Valida
 		Err:   err,
 	})
 
-	return outResult, nil
+	return outResult, false
 }
