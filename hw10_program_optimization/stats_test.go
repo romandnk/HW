@@ -1,9 +1,13 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,4 +40,43 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+}
+
+func BenchmarkGetDomainStat(b *testing.B) {
+	users := generateUsers(b.N)
+	content := prepareData(users)
+	reader := strings.NewReader(content)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _ = GetDomainStat(reader, "com")
+	}
+}
+
+func generateUsers(n int) []User {
+	users := make([]User, n)
+	for i := 0; i < n; i++ {
+		addition := fmt.Sprintf("%d", i)
+		users[i] = User{
+			ID:       i,
+			Name:     "test" + addition,
+			Username: "test" + addition,
+			Email:    "test" + addition + "@test.com",
+			Phone:    "1234567890",
+			Password: "test",
+			Address:  "test" + addition,
+		}
+	}
+	return users
+}
+
+func prepareData(users []User) string {
+	var sb strings.Builder
+	for _, user := range users {
+		jsonStr, _ := json.Marshal(user)
+		sb.WriteString(string(jsonStr))
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }
