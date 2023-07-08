@@ -2,6 +2,7 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -23,7 +24,7 @@ type (
 	}
 
 	App struct {
-		Version string `validate:"len:5"`
+		Version string `validate:"len:wrong"`
 	}
 
 	Token struct {
@@ -35,6 +36,10 @@ type (
 	Response struct {
 		Code int    `validate:"in:200,404,500"`
 		Body string `json:"omitempty"`
+	}
+
+	RegExp struct {
+		Smth string `validate:"regexp:[a-z"`
 	}
 )
 
@@ -53,24 +58,95 @@ func TestValidate(t *testing.T) {
 				Phones: []string{"88005553535"},
 				meta:   []byte{},
 			},
-			expectedErr: nil,
+			expectedErr: ValidationErrors{},
 		},
 		{
 			in: User{
-				ID:     "uuidd",
-				Name:   "TestOneName",
-				Age:    19,
-				Email:  "test_email@yandex.com",
-				Role:   "stuff",
-				Phones: []string{"88005553535"},
-				meta:   []byte{},
+				ID: "uuidd",
 			},
 			expectedErr: ValidationErrors{
 				ValidationError{
 					Field: "ID",
-					Err:   fmt.Errorf("len of string does not match with condition, value: uuidd"),
+					Err:   ErrInvalidLen,
 				},
 			},
+		},
+		{
+			in: User{
+				ID:  "uuid",
+				Age: 14,
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{
+					Field: "Age",
+					Err:   ErrTooSmallValue,
+				},
+			},
+		},
+		{
+			in: User{
+				ID:  "uuid",
+				Age: 51,
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{
+					Field: "Age",
+					Err:   ErrTooBigValue,
+				},
+			},
+		},
+		{
+			in: User{
+				ID:     "uuid",
+				Age:    20,
+				Email:  "test@test.com",
+				Role:   "stuff",
+				Phones: []string{"123456789"},
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{
+					Field: "Phones",
+					Err:   ErrInvalidLen,
+				},
+			},
+		},
+		{
+			in: User{
+				ID:    "uuid",
+				Age:   40,
+				Email: "sldkf",
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{
+					Field: "Email",
+					Err:   ErrStrNotMatch,
+				},
+			},
+		},
+		{
+			in:          App{},
+			expectedErr: ErrWrongLenCond,
+		},
+		{
+			in:          Token{},
+			expectedErr: ValidationErrors{},
+		},
+		{
+			in: Response{
+				Code: 300,
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{
+					Field: "Code",
+					Err:   ErrNumberNotInSet,
+				},
+			},
+		},
+		{
+			in: RegExp{
+				Smth: "sldfk",
+			},
+			expectedErr: ErrCompileRegExp,
 		},
 	}
 
@@ -81,7 +157,15 @@ func TestValidate(t *testing.T) {
 
 			err := Validate(tt.in)
 
-			require.ErrorIs(t, err, tt.expectedErr)
+			var validationErrors, expectedErrors ValidationErrors
+
+			if errors.As(err, &validationErrors) && errors.As(tt.expectedErr, &expectedErrors) {
+				for j := range expectedErrors {
+					require.Equal(t, validationErrors[j], expectedErrors[j])
+				}
+			} else {
+				require.ErrorIs(t, err, tt.expectedErr)
+			}
 		})
 	}
 }

@@ -41,7 +41,6 @@ func (v ValidationErrors) Error() string {
 	return resultString.String()
 }
 
-
 func Validate(v interface{}) error {
 	val := reflect.ValueOf(v)
 
@@ -79,25 +78,49 @@ func Validate(v interface{}) error {
 		}
 
 		switch field.Type.Kind() { //nolint:exhaustive
-		case reflect.Int:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			err = validateInt(valField.Int(), validateField)
-			resultErrors, exit = checkError(resultErrors, nameField, err)
+			if err == nil {
+				continue
+			}
+			resultErrors, err = checkError(resultErrors, nameField, err)
+			if err != nil {
+				return err
+			}
 		case reflect.String:
 			err = validateString(valField.String(), validateField)
-			resultErrors, exit = checkError(resultErrors, nameField, err)
+			if err == nil {
+				continue
+			}
+			resultErrors, err = checkError(resultErrors, nameField, err)
+			if err != nil {
+				return err
+			}
 		case reflect.Slice:
 			switch field.Type.Elem().Kind() { //nolint:exhaustive
-			case reflect.Int:
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				for i := 0; i < valField.Len(); i++ {
 					elem := valField.Index(i).Int()
 					err = validateInt(elem, validateField)
-					resultErrors, exit = checkError(resultErrors, nameField, err)
+					if err == nil {
+						continue
+					}
+					resultErrors, err = checkError(resultErrors, nameField, err)
+					if err != nil {
+						return err
+					}
 				}
 			case reflect.String:
 				for i := 0; i < valField.Len(); i++ {
 					elem := valField.Index(i).String()
 					err = validateString(elem, validateField)
-					resultErrors, exit = checkError(resultErrors, nameField, err)
+					if err == nil {
+						continue
+					}
+					resultErrors, err = checkError(resultErrors, nameField, err)
+					if err != nil {
+						return err
+					}
 				}
 			default:
 				return ErrWrongType
@@ -274,7 +297,7 @@ func validateString(fieldVal string, validateField string) error {
 	return nil
 }
 
-func checkError(outResult ValidationErrors, fieldName string, err error) (ValidationErrors, bool) {
+func checkError(outResult ValidationErrors, fieldName string, err error) (ValidationErrors, error) {
 	systemErrors := map[error]struct{}{
 		ErrCompileRegExp: {},
 		ErrWrongLenCond:  {},
@@ -284,7 +307,7 @@ func checkError(outResult ValidationErrors, fieldName string, err error) (Valida
 	}
 
 	if _, ok := systemErrors[err]; ok {
-		return outResult, true
+		return outResult, err
 	}
 
 	outResult = append(outResult, ValidationError{
@@ -292,5 +315,5 @@ func checkError(outResult ValidationErrors, fieldName string, err error) (Valida
 		Err:   err,
 	})
 
-	return outResult, false
+	return outResult, nil
 }
