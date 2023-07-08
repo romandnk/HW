@@ -1,10 +1,10 @@
-//go:generate easyjson -all
 package hw10programoptimization
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 )
 
@@ -31,29 +31,32 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 type users [100_000]User
 
 func getUsers(r io.Reader) (result users, err error) {
-	scanner := bufio.NewScanner(r)
-	var user User
+	content, err := io.ReadAll(r)
+	if err != nil {
+		return
+	}
 
-	for i := 0; scanner.Scan(); i++ {
-		line := scanner.Bytes()
-		if err = user.UnmarshalJSON(line); err != nil {
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		var user User
+		if err = json.Unmarshal([]byte(line), &user); err != nil {
 			return
 		}
 		result[i] = user
 	}
-
-	if err = scanner.Err(); err != nil {
-		return
-	}
-
 	return
 }
 
 func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat, len(u))
+	result := make(DomainStat)
 
 	for _, user := range u {
-		if strings.HasSuffix(user.Email, "."+domain) {
+		matched, err := regexp.Match("\\."+domain, []byte(user.Email))
+		if err != nil {
+			return nil, err
+		}
+
+		if matched {
 			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
 			num++
 			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
