@@ -41,6 +41,7 @@ func (v ValidationErrors) Error() string {
 	return resultString.String()
 }
 
+//nolint:gocognit
 func Validate(v interface{}) error {
 	val := reflect.ValueOf(v)
 
