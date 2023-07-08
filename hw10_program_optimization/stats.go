@@ -3,7 +3,6 @@ package hw10programoptimization
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"strings"
 )
@@ -21,43 +20,34 @@ type User struct {
 type DomainStat map[string]int
 
 func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
-	u, err := getUsers(r)
+	result, err := countDomains(r, domain)
 	if err != nil {
-		return nil, fmt.Errorf("get users error: %w", err)
+		return nil, err
 	}
-	return countDomains(u, domain)
+	return result, nil
 }
 
-type users [100_000]User
+func countDomains(r io.Reader, domain string) (DomainStat, error) {
+	result := make(DomainStat)
 
-func getUsers(r io.Reader) (result users, err error) {
 	scanner := bufio.NewScanner(r)
 	var user User
 
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Bytes()
-		if err = user.UnmarshalJSON(line); err != nil {
-			return
+		if err := user.UnmarshalJSON(line); err != nil {
+			return nil, err
 		}
-		result[i] = user
-	}
-
-	if err = scanner.Err(); err != nil {
-		return
-	}
-
-	return
-}
-
-func countDomains(u users, domain string) (DomainStat, error) {
-	result := make(DomainStat, len(u))
-
-	for _, user := range u {
 		if strings.HasSuffix(user.Email, "."+domain) {
 			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
 			num++
 			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
 		}
 	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }

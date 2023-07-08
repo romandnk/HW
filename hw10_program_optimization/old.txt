@@ -2,6 +2,6 @@ goos: linux
 goarch: amd64
 pkg: github.com/romandnk/HW/hw10_program_optimization
 cpu: Intel(R) Core(TM) i3-6100 CPU @ 3.70GHz
-BenchmarkGetDomainStat-4   	     614	   1945274 ns/op	    2138 B/op	      17 allocs/op
+BenchmarkGetDomainStat-4   	       7	 146346991 ns/op	136044554 B/op	 1700080 allocs/op
 PASS
-ok  	github.com/romandnk/HW/hw10_program_optimization	1.400s
+ok  	github.com/romandnk/HW/hw10_program_optimization	1.194s
