@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 )
 
@@ -33,32 +32,28 @@ type users [100_000]User
 
 func getUsers(r io.Reader) (result users, err error) {
 	scanner := bufio.NewScanner(r)
-	counter := 0
 	var user User
 
-	for scanner.Scan() {
+	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Bytes()
 		if err = user.UnmarshalJSON(line); err != nil {
 			return
 		}
-		result[counter] = user
-		counter++
+		result[i] = user
 	}
+
+	if err = scanner.Err(); err != nil {
+		return
+	}
+
 	return
 }
 
 func countDomains(u users, domain string) (DomainStat, error) {
 	result := make(DomainStat, len(u))
 
-	re, err := regexp.Compile("\\." + domain)
-	if err != nil {
-		return nil, err
-	}
-
 	for _, user := range u {
-		matched := re.MatchString(user.Email)
-
-		if matched {
+		if strings.HasSuffix(user.Email, "."+domain) {
 			num := result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])]
 			num++
 			result[strings.ToLower(strings.SplitN(user.Email, "@", 2)[1])] = num
