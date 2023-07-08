@@ -2,7 +2,6 @@ package hw10programoptimization
 
 import (
 	"bufio"
-
 	"io"
 	"strings"
 )
