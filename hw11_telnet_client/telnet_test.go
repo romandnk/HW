@@ -62,4 +62,23 @@ func TestTelnetClient(t *testing.T) {
 
 		wg.Wait()
 	})
+	t.Run("invalid address", func(t *testing.T) {
+		in := plug{}
+		out := &bytes.Buffer{}
+
+		client := NewTelnetClient("wrong:0000", time.Second, in, out)
+
+		require.Error(t, client.Connect())
+	})
+}
+
+type plug struct{}
+
+func (pl plug) Read(p []byte) (n int, err error) {
+	_ = p
+	return 0, nil
+}
+
+func (pl plug) Close() error {
+	return nil
 }
