@@ -5,18 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
 
 func main() {
-	var (
-		timeout time.Duration
-		address strings.Builder
-	)
+	var timeout time.Duration
 
 	if len(os.Args) < 2 {
 		log.Fatal("not enough arguments")
@@ -30,9 +27,7 @@ func main() {
 	host := params[0]
 	port := params[1]
 
-	address.WriteString(host + ":" + port)
-
-	client := NewTelnetClient(address.String(), timeout, os.Stdin, os.Stdout)
+	client := NewTelnetClient(net.JoinHostPort(host, port), timeout, os.Stdin, os.Stdout)
 
 	err := client.Connect()
 	if err != nil {
@@ -40,48 +35,31 @@ func main() {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if err := client.Send(); err != nil {
-					fmt.Printf("error sendind a message: %s\n", err.Error())
-					cancel()
-				}
-			}
+	go process(ctx, stop, client.Send, "error sending a message")
+
+	go process(ctx, stop, client.Receive, "error receiving a message")
+
+	for range ctx.Done() {
+		if err := client.Close(); err != nil {
+			fmt.Printf("error closing net: %s\n", err.Error())
+			return
 		}
-	}()
+	}
+}
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if err := client.Receive(); err != nil {
-					fmt.Printf("error receiving a message: %s\n", err.Error())
-					cancel()
-				}
-			}
-		}
-	}()
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, syscall.SIGINT, syscall.SIGQUIT)
-
+func process(ctx context.Context, cancelFunc func(), processFunc func() error, errorMsg string) {
 	for {
 		select {
-		case <-done:
-			cancel()
-			return
 		case <-ctx.Done():
-			if err := client.Close(); err != nil {
-				fmt.Printf("error closing net: %s\n", err.Error())
-				return
+			cancelFunc()
+			return
+		default:
+			if err := processFunc(); err != nil {
+				fmt.Printf("%s: %s\n", errorMsg, err.Error())
+				cancelFunc()
 			}
 		}
 	}
