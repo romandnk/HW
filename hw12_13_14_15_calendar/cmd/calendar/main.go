@@ -3,21 +3,20 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/app"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
 )
 
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "../../config/config.toml", "Path to configuration file")
 }
 
 func main() {
@@ -28,7 +27,8 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
+	config := NewConfig(configFile)
+
 	logg := logger.New(config.Logger.Level)
 
 	storage := memorystorage.New()
@@ -53,7 +53,7 @@ func main() {
 
 	logg.Info("calendar is running...")
 
-	if err := server.Start(ctx); err != nil {
+	if err := server.Start(); err != nil {
 		logg.Error("failed to start http server: " + err.Error())
 		cancel()
 		os.Exit(1) //nolint:gocritic

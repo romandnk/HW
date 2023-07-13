@@ -2,9 +2,19 @@ package internalhttp
 
 import (
 	"context"
+	"net/http"
+	"time"
 )
 
-type Server struct { // TODO
+type ServerConf struct {
+	Host         string
+	Port         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+}
+
+type Server struct {
+	srv *http.Server
 }
 
 type Logger interface { // TODO
@@ -13,19 +23,23 @@ type Logger interface { // TODO
 type Application interface { // TODO
 }
 
-func NewServer(logger Logger, app Application) *Server {
-	return &Server{}
+func NewServer(logger Logger, app Application, cfg ServerConf, handler http.Handler) *Server {
+	srv := &http.Server{
+		Addr:           cfg.Host + ":" + cfg.Port,
+		Handler:        handler,
+		MaxHeaderBytes: 1 << 20, // 1 MB
+		ReadTimeout:    cfg.ReadTimeout,
+		WriteTimeout:   cfg.WriteTimeout,
+	}
+	return &Server{
+		srv: srv,
+	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	// TODO
-	<-ctx.Done()
-	return nil
+func (s *Server) Start() error {
+	return s.srv.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
-	return nil
+	return s.srv.Shutdown(ctx)
 }
-
-// TODO
