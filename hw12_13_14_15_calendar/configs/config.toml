@@ -1,5 +1,6 @@
 [logger]
 level = "INFO"
+representation = "JSON"
 
 [database]
 host = "localhost"

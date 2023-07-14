@@ -40,13 +40,16 @@ func NewConfig(path string) *Config {
 }
 
 type LoggerConf struct {
-	Level string
+	Level          string
+	Representation string
 }
 
 func newLoggerConf() LoggerConf {
 	level := viper.GetString("logger.level")
+	representation := viper.GetString("logger.representation")
 	return LoggerConf{
-		Level: level,
+		Level:          level,
+		Representation: representation,
 	}
 }
 

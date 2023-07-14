@@ -30,7 +30,7 @@ func main() {
 
 	config := NewConfig(configFile)
 
-	log := logger.NewLogger(config.Logger.Level)
+	log := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
 
 	log.Info("use logging")
 
@@ -50,7 +50,7 @@ func main() {
 
 	handler := internalhttp.NewHandler(storage)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes(log.Logger))
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes(log))
 
 	go func() {
 		<-ctx.Done()

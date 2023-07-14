@@ -1,3 +1,5 @@
+include ./configs/.env
+
 BIN := "./bin/calendar"
 DOCKER_IMG="calendar:develop"
 
@@ -9,6 +11,9 @@ build:
 
 run: build
 	$(BIN) -config ./configs/config.toml
+
+migrate:
+	CALENDAR_DB_USER=$(CALENDAR_DB_USER) CALENDAR_DB_PASSWORD=$(CALENDAR_DB_PASSWORD) migrate -path ./migrations -database 'postgres://$(CALENDAR_DB_USER):$(CALENDAR_DB_PASSWORD)@localhost:5432/events?sslmode=disable' up
 
 build-img:
 	docker build \
