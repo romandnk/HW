@@ -3,6 +3,7 @@ package internalhttp
 import (
 	"golang.org/x/exp/slog"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -17,7 +18,7 @@ func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc
 		log.Info("Request info",
 			slog.String("method", r.Method),
 			slog.String("method path", r.URL.Path),
-			slog.Duration("processing time", duration),
+			slog.String("processing time", strconv.Itoa(int(duration.Milliseconds()))+"ms"),
 		)
 	}
 }
