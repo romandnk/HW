@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	"time"
 )
 
@@ -21,10 +22,10 @@ type DBConf struct {
 }
 
 type Event interface {
-	Create(ctx context.Context, event Event) (int, error)
-	Update(ctx context.Context, id int, event Event) (Event, error)
-	Delete(ctx context.Context, id int) (int, error)
-	GetAllByDay(ctx context.Context, data time.Time) ([]Event, error)
-	GetAllByWeek(ctx context.Context, data time.Time) ([]Event, error)
-	GetAllByMonth(ctx context.Context, data time.Time) ([]Event, error)
+	Create(ctx context.Context, event storage.Event) (string, error)
+	Update(ctx context.Context, id string, event storage.Event) (storage.Event, error)
+	Delete(ctx context.Context, id string) (string, error)
+	GetAllByDay(ctx context.Context, data time.Time) ([]storage.Event, error)
+	GetAllByWeek(ctx context.Context, data time.Time) ([]storage.Event, error)
+	GetAllByMonth(ctx context.Context, data time.Time) ([]storage.Event, error)
 }

@@ -2,6 +2,7 @@ package internalhttp
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"time"
 )
@@ -19,7 +20,7 @@ type Server struct {
 
 func NewServer(cfg ServerConf, handler http.Handler) *Server {
 	srv := &http.Server{
-		Addr:           cfg.Host + ":" + cfg.Port,
+		Addr:           net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:        handler,
 		MaxHeaderBytes: 1 << 20, // 1 MB
 		ReadTimeout:    cfg.ReadTimeout,

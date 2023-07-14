@@ -31,9 +31,9 @@ func NewConfig(path string) *Config {
 	viper.AutomaticEnv()           // read env variables
 
 	config := Config{
-		Logger: NewLoggerConf(),
-		DB:     NewDBConf(),
-		Server: NewServerConf(),
+		Logger: newLoggerConf(),
+		DB:     newDBConf(),
+		Server: newServerConf(),
 	}
 
 	return &config
@@ -43,14 +43,14 @@ type LoggerConf struct {
 	Level string
 }
 
-func NewLoggerConf() LoggerConf {
+func newLoggerConf() LoggerConf {
 	level := viper.GetString("logger.level")
 	return LoggerConf{
 		Level: level,
 	}
 }
 
-func NewServerConf() internalhttp.ServerConf {
+func newServerConf() internalhttp.ServerConf {
 	host := viper.GetString("server.host")
 	port := viper.GetString("server.port")
 	readTimeout := viper.GetDuration("server.read_timeout")
@@ -63,7 +63,7 @@ func NewServerConf() internalhttp.ServerConf {
 	}
 }
 
-func NewDBConf() dbconf.DBConf {
+func newDBConf() dbconf.DBConf {
 	host := viper.GetString("database.host")
 	port := viper.GetString("database.port")
 	username := viper.GetString("DB_USER")
