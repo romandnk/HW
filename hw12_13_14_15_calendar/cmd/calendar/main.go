@@ -7,6 +7,7 @@ import (
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"golang.org/x/exp/slog"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -58,7 +59,7 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			log.Error("error stopping server", slog.String("address", config.Server.Host+":"+config.Server.Port))
+			log.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 			cancel()
 			os.Exit(1)
 		}
@@ -69,7 +70,7 @@ func main() {
 	log.Info("calendar is running...")
 
 	if err := server.Start(); err != nil {
-		log.Error("error starting server", slog.String("address", config.Server.Host+":"+config.Server.Port))
+		log.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port))
 		cancel()
 		os.Exit(1)
 	}
