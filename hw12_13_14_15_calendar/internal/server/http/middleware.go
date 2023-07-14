@@ -1,35 +1,23 @@
 package internalhttp
 
-//func New(log *slog.Logger) func(next http.Handler) http.Handler {
-//	return func(next http.Handler) http.Handler {
-//		log = log.With(
-//			slog.String("component", "middleware/logger"),
-//		)
-//
-//		log.Info("logger middleware enabled")
-//
-//		fn := func(w http.ResponseWriter, r *http.Request) {
-//			entry := log.With(
-//				slog.String("method", r.Method),
-//				slog.String("path", r.URL.Path),
-//				slog.String("remote_addr", r.RemoteAddr),
-//				slog.String("user_agent", r.UserAgent()),
-//				slog.String("request_id", middleware.GetReqID(r.Context())),
-//			)
-//			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-//
-//			t1 := time.Now()
-//			defer func() {
-//				entry.Info("request completed",
-//					slog.Int("status", ww.Status()),
-//					slog.Int("bytes", ww.BytesWritten()),
-//					slog.String("duration", time.Since(t1).String()),
-//				)
-//			}()
-//
-//			next.ServeHTTP(ww, r)
-//		}
-//
-//		return http.HandlerFunc(fn)
-//	}
-//}
+import (
+	"golang.org/x/exp/slog"
+	"net/http"
+	"time"
+)
+
+func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		next.ServeHTTP(w, r)
+
+		duration := time.Since(start)
+
+		log.Info("Request info",
+			slog.String("method", r.Method),
+			slog.String("method path", r.URL.Path),
+			slog.Duration("processing time", duration),
+		)
+	}
+}

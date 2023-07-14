@@ -70,7 +70,7 @@ func main() {
 	log.Info("calendar is running...")
 
 	if err := server.Start(); err != nil {
-		log.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port))
+		log.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 		cancel()
 		os.Exit(1)
 	}

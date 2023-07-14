@@ -25,7 +25,7 @@ type Event interface {
 	Create(ctx context.Context, event storage.Event) (string, error)
 	Update(ctx context.Context, id string, event storage.Event) (storage.Event, error)
 	Delete(ctx context.Context, id string) (string, error)
-	GetAllByDay(ctx context.Context, data time.Time) ([]storage.Event, error)
-	GetAllByWeek(ctx context.Context, data time.Time) ([]storage.Event, error)
-	GetAllByMonth(ctx context.Context, data time.Time) ([]storage.Event, error)
+	GetAllByDay(ctx context.Context, date time.Time) ([]storage.Event, error)
+	GetAllByWeek(ctx context.Context, date time.Time) ([]storage.Event, error)
+	GetAllByMonth(ctx context.Context, date time.Time) ([]storage.Event, error)
 }

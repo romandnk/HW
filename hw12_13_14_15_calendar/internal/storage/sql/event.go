@@ -84,14 +84,101 @@ func (e *EventPostgres) Delete(ctx context.Context, id string) (string, error) {
 	return deletedID, nil
 }
 
-func (e *EventPostgres) GetAllByDay(ctx context.Context, data time.Time) ([]storage.Event, error) {
-	panic("")
+func (e *EventPostgres) GetAllByDay(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	var events []storage.Event
+
+	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s WHERE date = $1`, eventsTable)
+
+	rows, err := e.db.Query(ctx, query, date)
+	if err != nil {
+		return nil, fmt.Errorf("error selecting events by day: %w", err)
+	}
+
+	for rows.Next() {
+		var event storage.Event
+
+		err := rows.Scan(
+			&event.ID,
+			&event.Title,
+			&event.Date,
+			&event.Duration,
+			&event.Description,
+			&event.UserID,
+			&event.NotificationInterval,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning rows: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
-func (e *EventPostgres) GetAllByWeek(ctx context.Context, data time.Time) ([]storage.Event, error) {
-	panic("")
+func (e *EventPostgres) GetAllByWeek(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	var events []storage.Event
+
+	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
+
+	rows, err := e.db.Query(ctx, query, date)
+	if err != nil {
+		return nil, fmt.Errorf("error selecting events by day: %w", err)
+	}
+
+	for rows.Next() {
+		var event storage.Event
+
+		err := rows.Scan(
+			&event.ID,
+			&event.Title,
+			&event.Date,
+			&event.Duration,
+			&event.Description,
+			&event.UserID,
+			&event.NotificationInterval,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning rows: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
-func (e *EventPostgres) GetAllByMonth(ctx context.Context, data time.Time) ([]storage.Event, error) {
-	panic("")
+func (e *EventPostgres) GetAllByMonth(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	var events []storage.Event
+
+	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
+
+	rows, err := e.db.Query(ctx, query, date)
+	if err != nil {
+		return nil, fmt.Errorf("error selecting events by day: %w", err)
+	}
+
+	for rows.Next() {
+		var event storage.Event
+
+		err := rows.Scan(
+			&event.ID,
+			&event.Title,
+			&event.Date,
+			&event.Duration,
+			&event.Description,
+			&event.UserID,
+			&event.NotificationInterval,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning rows: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }

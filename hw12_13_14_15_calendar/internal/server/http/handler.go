@@ -2,6 +2,7 @@ package internalhttp
 
 import (
 	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
+	"golang.org/x/exp/slog"
 	"net/http"
 )
 
@@ -16,10 +17,10 @@ func NewHandler(event sqlstorage.Event) *Handler {
 	}
 }
 
-func (h *Handler) InitRoutes() *http.ServeMux {
+func (h *Handler) InitRoutes(log *slog.Logger) *http.ServeMux {
 	router := http.NewServeMux()
 
-	router.HandleFunc("/", h.HelloWorld)
+	router.HandleFunc("/", middlewareLogging(log, h.HelloWorld))
 
 	h.ServeMux = router
 
