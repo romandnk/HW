@@ -50,7 +50,7 @@ func main() {
 
 	handler := internalhttp.NewHandler(storage)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes())
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes(log.Logger))
 
 	go func() {
 		<-ctx.Done()
@@ -67,7 +67,7 @@ func main() {
 		log.Info("calendar is stopped")
 	}()
 
-	log.Info("calendar is running...")
+	log.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 
 	if err := server.Start(); err != nil {
 		log.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
