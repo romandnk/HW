@@ -1,11 +1,12 @@
 package main
 
 import (
+	"log"
+
 	"github.com/joho/godotenv"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	dbconf "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/spf13/viper"
-	"log"
 )
 
 type Config struct {
@@ -14,7 +15,7 @@ type Config struct {
 	Server internalhttp.ServerConf
 }
 
-func NewConfig(path string) Config {
+func NewConfig(path string) *Config {
 	viper.SetConfigFile(path) // find config file with specific path
 
 	err := viper.ReadInConfig() // read config file
@@ -22,7 +23,7 @@ func NewConfig(path string) Config {
 		log.Fatalf("fatal error config file: %s\n", err)
 	}
 
-	if err := godotenv.Load("../../config/.env"); err != nil { // load .env into system
+	if err := godotenv.Load("./configs/.env"); err != nil { // load .env into system
 		log.Fatalf("error loading .env: %s", err.Error())
 	}
 
@@ -35,7 +36,7 @@ func NewConfig(path string) Config {
 		Server: NewServerConf(),
 	}
 
-	return config
+	return &config
 }
 
 type LoggerConf struct {

@@ -2,8 +2,6 @@ package sqlstorage
 
 import (
 	"context"
-	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
 )
 
@@ -22,30 +20,11 @@ type DBConf struct {
 	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
 }
 
-func NewPostgresDB(ctx context.Context, dbCfg DBConf) (*pgxpool.Pool, error) {
-	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbCfg.Username,
-		dbCfg.Password,
-		dbCfg.Host,
-		dbCfg.Port,
-		dbCfg.DBName,
-		dbCfg.SSLMode,
-	)
-
-	conf, err := pgxpool.ParseConfig(connString)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing config pgx: %s", err.Error())
-	}
-
-	conf.MaxConns = dbCfg.MaxConns
-	conf.MinConns = dbCfg.MinConns
-	conf.MaxConnIdleTime = dbCfg.MaxConnIdleTime
-	conf.MaxConnLifetime = dbCfg.MaxConnLifetime
-
-	db, err := pgxpool.NewWithConfig(ctx, conf)
-	if err != nil {
-		return nil, fmt.Errorf("error connecting pgx db: %w", err)
-	}
-
-	return db, nil
+type Event interface {
+	Create(ctx context.Context, event Event) (int, error)
+	Update(ctx context.Context, id int, event Event) (Event, error)
+	Delete(ctx context.Context, id int) (int, error)
+	GetAllByDay(ctx context.Context, data time.Time) ([]Event, error)
+	GetAllByWeek(ctx context.Context, data time.Time) ([]Event, error)
+	GetAllByMonth(ctx context.Context, data time.Time) ([]Event, error)
 }

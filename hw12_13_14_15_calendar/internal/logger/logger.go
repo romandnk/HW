@@ -1,23 +1,29 @@
 package logger
 
-import "fmt"
+import (
+	"golang.org/x/exp/slog"
+	"os"
+)
 
 type Logger struct {
-	Level string
+	*slog.Logger
 }
 
-func New(level string) *Logger {
+func NewLogger(level string) *Logger {
+	var log *slog.Logger
+
+	switch level {
+	case "INFO":
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	case "DEBUG":
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	case "ERROR":
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	case "WARN":
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
+	}
+
 	return &Logger{
-		Level: level,
+		Logger: log,
 	}
 }
-
-func (l Logger) Info(msg string) {
-	fmt.Println(msg)
-}
-
-func (l Logger) Error(msg string) {
-	// TODO
-}
-
-// TODO

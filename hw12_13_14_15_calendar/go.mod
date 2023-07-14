@@ -6,6 +6,7 @@ require (
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/viper v1.16.0
+	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
 
 require (

@@ -17,13 +17,7 @@ type Server struct {
 	srv *http.Server
 }
 
-type Logger interface { // TODO
-}
-
-type Application interface { // TODO
-}
-
-func NewServer(logger Logger, app Application, cfg ServerConf, handler http.Handler) *Server {
+func NewServer(cfg ServerConf, handler http.Handler) *Server {
 	srv := &http.Server{
 		Addr:           cfg.Host + ":" + cfg.Port,
 		Handler:        handler,

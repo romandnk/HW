@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/app"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
+	"golang.org/x/exp/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,29 +16,40 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "../../config/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "./config/config.toml", "Path to configuration file")
 }
 
 func main() {
 	flag.Parse()
 
-	if flag.Arg(0) == "version" {
-		printVersion()
-		return
-	}
+	// if flag.Arg(0) == "version" {
+	//	printVersion()
+	//	return
+	//}
 
 	config := NewConfig(configFile)
 
-	logg := logger.New(config.Logger.Level)
+	log := logger.NewLogger(config.Logger.Level)
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
-
-	server := internalhttp.NewServer(logg, calendar)
+	log.Info("use logging")
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
+
+	db, err := sqlstorage.NewPostgresDB(ctx, config.DB)
+	if err != nil {
+		log.Error("error connecting db", slog.String("address", config.DB.Host+":"+config.DB.Port))
+		cancel()
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	storage := sqlstorage.NewEventPostgres(db)
+
+	handler := internalhttp.NewHandler(storage)
+
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes())
 
 	go func() {
 		<-ctx.Done()
@@ -47,15 +58,19 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+			log.Error("error stopping server", slog.String("address", config.Server.Host+":"+config.Server.Port))
+			cancel()
+			os.Exit(1)
 		}
+
+		log.Info("calendar is stopped")
 	}()
 
-	logg.Info("calendar is running...")
+	log.Info("calendar is running...")
 
 	if err := server.Start(); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
+		log.Error("error starting server", slog.String("address", config.Server.Host+":"+config.Server.Port))
 		cancel()
-		os.Exit(1) //nolint:gocritic
+		os.Exit(1)
 	}
 }
