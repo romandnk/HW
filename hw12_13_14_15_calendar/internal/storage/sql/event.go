@@ -5,26 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"time"
 )
 
-type EventPostgres struct {
-	db *pgxpool.Pool
-}
-
-func NewEventPostgres(db *pgxpool.Pool) *EventPostgres {
-	return &EventPostgres{db: db}
-}
-
-func (e *EventPostgres) Create(ctx context.Context, event storage.Event) (string, error) {
+func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
 	var id string
 
 	query := fmt.Sprintf(`INSERT INTO %s (title, date, duration, description, user_id, notification_interval)
 									VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, eventsTable)
 
-	err := e.db.QueryRow(ctx, query,
+	err := s.db.QueryRow(ctx, query,
 		event.Title,
 		event.Date,
 		event.Duration,
@@ -40,13 +31,13 @@ func (e *EventPostgres) Create(ctx context.Context, event storage.Event) (string
 	return id, nil
 }
 
-func (e *EventPostgres) Update(ctx context.Context, id string, event storage.Event) (storage.Event, error) {
-	var updatedEvent storage.Event
+func (s *Storage) Update(ctx context.Context, id string, event models.Event) (models.Event, error) {
+	var updatedEvent models.Event
 
 	query := fmt.Sprintf(`UPDATE %s SET title = $1, date = $2, duration = $3, description = $4, user_id = $5, notification_interval = $6 
           WHERE id = $7 RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	err := e.db.QueryRow(ctx, query,
+	err := s.db.QueryRow(ctx, query,
 		event.Title,
 		event.Date,
 		event.Duration,
@@ -59,7 +50,7 @@ func (e *EventPostgres) Update(ctx context.Context, id string, event storage.Eve
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return updatedEvent, fmt.Errorf("no event with id %d: %w", id, err)
+			return updatedEvent, fmt.Errorf("no event with id %s: %w", id, err)
 		}
 		return updatedEvent, fmt.Errorf("error updating event: %w", err)
 	}
@@ -67,12 +58,12 @@ func (e *EventPostgres) Update(ctx context.Context, id string, event storage.Eve
 	return updatedEvent, nil
 }
 
-func (e *EventPostgres) Delete(ctx context.Context, id string) (string, error) {
+func (s *Storage) Delete(ctx context.Context, id string) (string, error) {
 	var deletedID string
 
 	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1 RETURNING id`, eventsTable)
 
-	err := e.db.QueryRow(ctx, query, id).Scan(&deletedID)
+	err := s.db.QueryRow(ctx, query, id).Scan(&deletedID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -84,19 +75,19 @@ func (e *EventPostgres) Delete(ctx context.Context, id string) (string, error) {
 	return deletedID, nil
 }
 
-func (e *EventPostgres) GetAllByDay(ctx context.Context, date time.Time) ([]storage.Event, error) {
-	var events []storage.Event
+func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
+	var events []models.Event
 
 	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s WHERE date = $1`, eventsTable)
 
-	rows, err := e.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, fmt.Errorf("error selecting events by day: %w", err)
 	}
 
 	for rows.Next() {
-		var event storage.Event
+		var event models.Event
 
 		err := rows.Scan(
 			&event.ID,
@@ -117,19 +108,19 @@ func (e *EventPostgres) GetAllByDay(ctx context.Context, date time.Time) ([]stor
 	return events, nil
 }
 
-func (e *EventPostgres) GetAllByWeek(ctx context.Context, date time.Time) ([]storage.Event, error) {
-	var events []storage.Event
+func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
+	var events []models.Event
 
 	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
 
-	rows, err := e.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, fmt.Errorf("error selecting events by day: %w", err)
 	}
 
 	for rows.Next() {
-		var event storage.Event
+		var event models.Event
 
 		err := rows.Scan(
 			&event.ID,
@@ -150,19 +141,19 @@ func (e *EventPostgres) GetAllByWeek(ctx context.Context, date time.Time) ([]sto
 	return events, nil
 }
 
-func (e *EventPostgres) GetAllByMonth(ctx context.Context, date time.Time) ([]storage.Event, error) {
-	var events []storage.Event
+func (s *Storage) GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
+	var events []models.Event
 
 	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
 
-	rows, err := e.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, fmt.Errorf("error selecting events by day: %w", err)
 	}
 
 	for rows.Next() {
-		var event storage.Event
+		var event models.Event
 
 		err := rows.Scan(
 			&event.ID,

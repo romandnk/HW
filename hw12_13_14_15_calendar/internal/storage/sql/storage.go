@@ -2,7 +2,8 @@ package sqlstorage
 
 import (
 	"context"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"time"
 )
 
@@ -21,11 +22,22 @@ type DBConf struct {
 	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
 }
 
-type Event interface {
-	Create(ctx context.Context, event storage.Event) (string, error)
-	Update(ctx context.Context, id string, event storage.Event) (storage.Event, error)
+//go:generate mockgen -source=storage.go -destination=.mock/mock.go sqlstorage
+type StoreEvent interface {
+	Create(ctx context.Context, event models.Event) (string, error)
+	Update(ctx context.Context, id string, event models.Event) (models.Event, error)
 	Delete(ctx context.Context, id string) (string, error)
-	GetAllByDay(ctx context.Context, date time.Time) ([]storage.Event, error)
-	GetAllByWeek(ctx context.Context, date time.Time) ([]storage.Event, error)
-	GetAllByMonth(ctx context.Context, date time.Time) ([]storage.Event, error)
+	GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error)
+	GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error)
+	GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error)
+}
+
+type Storage struct {
+	db *pgxpool.Pool
+}
+
+func NewStorage(db *pgxpool.Pool) *Storage {
+	return &Storage{
+		db: db,
+	}
 }
