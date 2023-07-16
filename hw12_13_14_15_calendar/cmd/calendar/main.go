@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
-	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
-	"golang.org/x/exp/slog"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	st "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
+	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
+	"golang.org/x/exp/slog"
 )
 
 var configFile string
@@ -38,15 +41,22 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	db, err := sqlstorage.NewPostgresDB(ctx, config.DB)
-	if err != nil {
-		log.Error("error connecting db", slog.String("address", config.DB.Host+":"+config.DB.Port))
-		cancel()
-		os.Exit(1)
-	}
-	defer db.Close()
+	var storage st.StoreEvent
 
-	storage := sqlstorage.NewEventPostgres(db)
+	// use memory storage or sql storage
+	if config.Storage.Memory {
+		storage = memorystorage.NewStorageMemory()
+	} else {
+		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
+		if err != nil {
+			log.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+			cancel()
+			os.Exit(1)
+		}
+		defer db.Close()
+
+		storage = sqlstorage.NewStorageSQL(db)
+	}
 
 	handler := internalhttp.NewHandler(storage)
 

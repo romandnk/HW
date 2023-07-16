@@ -1,16 +1,25 @@
 package memorystorage
 
 import (
+	"context"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
-	"time"
 )
 
 const day = 24 * time.Hour
 
-func (s *Storage) Create(event models.Event) string {
+func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 
 	id := uuid.New().String()
 
@@ -18,14 +27,18 @@ func (s *Storage) Create(event models.Event) string {
 
 	s.events[id] = event
 
-	s.mu.Unlock()
-
-	return id
+	return id, nil
 }
 
-func (s *Storage) Update(id string, event models.Event) (models.Event, error) {
+func (s *Storage) Update(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return models.Event{}, ctx.Err()
+	default:
+	}
 
 	if _, ok := s.events[id]; !ok {
 		return models.Event{}, fmt.Errorf("updating: no event with id %s", id)
@@ -33,12 +46,18 @@ func (s *Storage) Update(id string, event models.Event) (models.Event, error) {
 
 	s.events[id] = event
 
-	return event, nil
+	return s.events[id], nil
 }
 
-func (s *Storage) Delete(id string) (string, error) {
+func (s *Storage) Delete(ctx context.Context, id string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 
 	if _, ok := s.events[id]; !ok {
 		return "", fmt.Errorf("deleting: no event with id %s", id)
@@ -49,8 +68,15 @@ func (s *Storage) Delete(id string) (string, error) {
 	return id, nil
 }
 
-func (s *Storage) GetAllByDay(date time.Time) []models.Event {
+func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return []models.Event{}, ctx.Err()
+	default:
+	}
 
 	var events []models.Event
 
@@ -60,13 +86,18 @@ func (s *Storage) GetAllByDay(date time.Time) []models.Event {
 		}
 	}
 
-	s.mu.RUnlock()
-
-	return events
+	return events, nil
 }
 
-func (s *Storage) GetAllByWeek(date time.Time) []models.Event {
+func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return []models.Event{}, ctx.Err()
+	default:
+	}
 
 	var events []models.Event
 
@@ -76,13 +107,18 @@ func (s *Storage) GetAllByWeek(date time.Time) []models.Event {
 		}
 	}
 
-	s.mu.RUnlock()
-
-	return events
+	return events, nil
 }
 
-func (s *Storage) GetAllByMonth(date time.Time) []models.Event {
+func (s *Storage) GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return []models.Event{}, ctx.Err()
+	default:
+	}
 
 	var events []models.Event
 
@@ -92,9 +128,7 @@ func (s *Storage) GetAllByMonth(date time.Time) []models.Event {
 		}
 	}
 
-	s.mu.RUnlock()
-
-	return events
+	return events, nil
 }
 
 func inTimeSpan(start, end, check time.Time) bool {

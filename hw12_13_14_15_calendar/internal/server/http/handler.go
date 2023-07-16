@@ -1,19 +1,20 @@
 package internalhttp
 
 import (
-	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
-	"golang.org/x/exp/slog"
 	"net/http"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
+	"golang.org/x/exp/slog"
 )
 
 type Handler struct {
 	*http.ServeMux
-	Event sqlstorage.Event
+	Storage storage.StoreEvent
 }
 
-func NewHandler(event sqlstorage.Event) *Handler {
+func NewHandler(storage storage.StoreEvent) *Handler {
 	return &Handler{
-		Event: event,
+		Storage: storage,
 	}
 }
 

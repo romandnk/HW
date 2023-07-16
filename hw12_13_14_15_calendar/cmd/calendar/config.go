@@ -10,9 +10,9 @@ import (
 )
 
 type Config struct {
-	Logger LoggerConf
-	DB     dbconf.DBConf
-	Server internalhttp.ServerConf
+	Logger  LoggerConf
+	Server  internalhttp.ServerConf
+	Storage StorageConf
 }
 
 func NewConfig(path string) *Config {
@@ -31,9 +31,9 @@ func NewConfig(path string) *Config {
 	viper.AutomaticEnv()           // read env variables
 
 	config := Config{
-		Logger: newLoggerConf(),
-		DB:     newDBConf(),
-		Server: newServerConf(),
+		Logger:  newLoggerConf(),
+		Storage: newStorageConf(),
+		Server:  newServerConf(),
 	}
 
 	return &config
@@ -66,18 +66,30 @@ func newServerConf() internalhttp.ServerConf {
 	}
 }
 
-func newDBConf() dbconf.DBConf {
-	host := viper.GetString("database.host")
-	port := viper.GetString("database.port")
+type StorageConf struct {
+	Memory bool
+	DB     dbconf.DBConf
+}
+
+func newStorageConf() StorageConf {
+	memory := viper.GetBool("storage.memory")
+	if memory {
+		return StorageConf{
+			Memory: true,
+		}
+	}
+
+	host := viper.GetString("storage.database.host")
+	port := viper.GetString("storage.database.port")
 	username := viper.GetString("DB_USER")
 	password := viper.GetString("DB_PASSWORD")
-	dbName := viper.GetString("database.db_name")
-	sslmode := viper.GetString("database.sslmode")
-	maxConns := viper.GetInt32("database.max_conns")
-	minConns := viper.GetInt32("database.min_conns")
-	maxConnLifetime := viper.GetDuration("database.max_conn_lifetime")
-	maxConnIdleTime := viper.GetDuration("database.max_conn_idle_time")
-	return dbconf.DBConf{
+	dbName := viper.GetString("storage.database.db_name")
+	sslmode := viper.GetString("storage.database.sslmode")
+	maxConns := viper.GetInt("storage.database.max_conns")
+	minConns := viper.GetInt("storage.database.min_conns")
+	maxConnLifetime := viper.GetDuration("storage.database.max_conn_lifetime")
+	maxConnIdleTime := viper.GetDuration("storage.database.max_conn_idle_time")
+	DBconf := dbconf.DBConf{
 		Host:            host,
 		Port:            port,
 		Username:        username,
@@ -88,5 +100,9 @@ func newDBConf() dbconf.DBConf {
 		MinConns:        minConns,
 		MaxConnLifetime: maxConnLifetime,
 		MaxConnIdleTime: maxConnIdleTime,
+	}
+
+	return StorageConf{
+		DB: DBconf,
 	}
 }

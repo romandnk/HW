@@ -1,9 +1,9 @@
 package memorystorage
 
 import (
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"sync"
-	"time"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
 type Storage struct {
@@ -11,17 +11,8 @@ type Storage struct {
 	events map[string]models.Event
 }
 
-func NewStorage() *Storage {
+func NewStorageMemory() *Storage {
 	return &Storage{
 		events: make(map[string]models.Event),
 	}
-}
-
-type StoreEvent interface {
-	Create(event models.Event) string
-	Update(id string, event models.Event) (models.Event, error)
-	Delete(id string) (string, error)
-	GetAllByDay(date time.Time) []models.Event
-	GetAllByWeek(date time.Time) []models.Event
-	GetAllByMonth(date time.Time) []models.Event
 }

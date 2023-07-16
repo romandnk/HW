@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"golang.org/x/exp/slog"
 	"os"
+
+	"golang.org/x/exp/slog"
 )
 
 const (

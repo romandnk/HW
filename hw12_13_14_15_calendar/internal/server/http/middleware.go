@@ -1,10 +1,11 @@
 package internalhttp
 
 import (
-	"golang.org/x/exp/slog"
 	"net/http"
 	"strconv"
 	"time"
+
+	"golang.org/x/exp/slog"
 )
 
 func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc {
