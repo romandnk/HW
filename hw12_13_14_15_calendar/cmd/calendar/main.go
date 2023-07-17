@@ -56,7 +56,6 @@ func main() {
 		if err != nil {
 			logg.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
 			cancel()
-			os.Exit(1)
 		}
 		defer db.Close()
 
@@ -87,6 +86,5 @@ func main() {
 	if err := server.Start(); err != nil {
 		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 		cancel()
-		os.Exit(1)
 	}
 }
