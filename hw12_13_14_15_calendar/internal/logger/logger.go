@@ -18,28 +18,24 @@ const (
 func NewLogger(level string, representation string) *slog.Logger {
 	var log *slog.Logger
 
-	if representation == jsonLogger {
-		switch level {
-		case infoLevel:
-			log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-		case debugLevel:
-			log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		case errorLevel:
-			log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-		case warnLevel:
-			log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
-		}
-	} else if representation == textLogger {
-		switch level {
-		case infoLevel:
-			log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-		case debugLevel:
-			log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		case errorLevel:
-			log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-		case warnLevel:
-			log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}))
-		}
+	logOptions := slog.HandlerOptions{}
+
+	switch level {
+	case infoLevel:
+		logOptions.Level = slog.LevelInfo
+	case debugLevel:
+		logOptions.Level = slog.LevelDebug
+	case errorLevel:
+		logOptions.Level = slog.LevelError
+	case warnLevel:
+		logOptions.Level = slog.LevelWarn
+	}
+
+	switch representation {
+	case jsonLogger:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &logOptions))
+	case textLogger:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &logOptions))
 	}
 
 	return log

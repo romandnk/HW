@@ -1,7 +1,6 @@
 package sqlstorage
 
-//
-// import (
+//import (
 //	"context"
 //	"github.com/DATA-DOG/go-sqlmock"
 //	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
@@ -9,7 +8,7 @@ package sqlstorage
 //	"time"
 //)
 //
-// func TestStorageCreate(t *testing.T) {
+//func TestStorageCreate(t *testing.T) {
 //	db, mock, err := sqlmock.New()
 //	if err != nil {
 //		t.Fatal(err)

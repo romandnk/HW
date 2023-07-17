@@ -90,9 +90,8 @@ func TestStorageDelete(t *testing.T) {
 	}
 
 	for _, id := range IDs {
-		deletedID, err := st.Delete(ctx, id)
+		err := st.Delete(ctx, id)
 		require.NoError(t, err)
-		require.Equal(t, id, deletedID)
 	}
 
 	if len(st.events) != 0 {
@@ -114,10 +113,9 @@ func TestStorageDeleteError(t *testing.T) {
 	}
 
 	for _, id := range IDs {
-		deletedID, err := st.Delete(ctx, id)
+		err := st.Delete(ctx, id)
 		require.Error(t, err)
 		require.Equal(t, fmt.Errorf("deleting: no event with id %s", id), err)
-		require.Equal(t, "", deletedID)
 	}
 
 	if len(st.events) != 100 {

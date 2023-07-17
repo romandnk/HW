@@ -49,23 +49,23 @@ func (s *Storage) Update(ctx context.Context, id string, event models.Event) (mo
 	return s.events[id], nil
 }
 
-func (s *Storage) Delete(ctx context.Context, id string) (string, error) {
+func (s *Storage) Delete(ctx context.Context, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	select {
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return ctx.Err()
 	default:
 	}
 
 	if _, ok := s.events[id]; !ok {
-		return "", fmt.Errorf("deleting: no event with id %s", id)
+		return fmt.Errorf("deleting: no event with id %s", id)
 	}
 
 	delete(s.events, id)
 
-	return id, nil
+	return nil
 }
 
 func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -31,11 +32,14 @@ func main() {
 		return
 	}
 
-	config := NewConfig(configFile)
+	config, err := NewConfig(configFile)
+	if err != nil {
+		log.Fatalf("config error: %s", err.Error())
+	}
 
-	log := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
+	logg := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
 
-	log.Info("use logging")
+	logg.Info("use logging")
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -44,12 +48,13 @@ func main() {
 	var storage st.StoreEvent
 
 	// use memory storage or sql storage
-	if config.Storage.Memory {
+	switch config.Storage.Type {
+	case "memory":
 		storage = memorystorage.NewStorageMemory()
-	} else {
+	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
 		if err != nil {
-			log.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+			logg.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
 			cancel()
 			os.Exit(1)
 		}
@@ -60,7 +65,7 @@ func main() {
 
 	handler := internalhttp.NewHandler(storage)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes(log))
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes(logg))
 
 	go func() {
 		<-ctx.Done()
@@ -69,18 +74,18 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			log.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 			cancel()
 			os.Exit(1)
 		}
 
-		log.Info("calendar is stopped")
+		logg.Info("calendar is stopped")
 	}()
 
-	log.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 
 	if err := server.Start(); err != nil {
-		log.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 		cancel()
 		os.Exit(1)
 	}

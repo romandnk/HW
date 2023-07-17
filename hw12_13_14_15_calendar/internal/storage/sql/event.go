@@ -64,20 +64,23 @@ func (s *Storage) Update(ctx context.Context, id string, event models.Event) (mo
 	return updatedEvent, nil
 }
 
-func (s *Storage) Delete(ctx context.Context, id string) (string, error) {
-	var deletedID string
+func (s *Storage) Delete(ctx context.Context, id string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
-	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1 RETURNING id`, eventsTable)
-
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&deletedID)
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return deletedID, fmt.Errorf("no event with id %s: %w", id, err)
-		}
-		return deletedID, fmt.Errorf("error deleting event: %w", err)
+		return fmt.Errorf("error deleting event: %w", err)
 	}
 
-	return deletedID, nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete validation error: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("no event with id %s: %w", id, err)
+	}
+
+	return nil
 }
 
 func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {

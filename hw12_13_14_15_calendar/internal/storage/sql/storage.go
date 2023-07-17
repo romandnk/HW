@@ -20,8 +20,6 @@ type DBConf struct {
 	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
 }
 
-//go:generate mockgen -source=storage.go -destination=.mock/mock.go sqlstorage
-
 type Storage struct {
 	db *sql.DB
 }
