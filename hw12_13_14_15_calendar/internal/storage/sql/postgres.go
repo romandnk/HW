@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 func NewPostgresDB(ctx context.Context, cfg DBConf) (*sql.DB, error) {
@@ -16,7 +19,14 @@ func NewPostgresDB(ctx context.Context, cfg DBConf) (*sql.DB, error) {
 		cfg.SSLMode,
 	)
 
-	db, err := sql.Open("pgx", connString)
+	conf, err := pgx.ParseConfig(connString)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing config pgx: %s", err.Error())
+	}
+
+	connStr := stdlib.RegisterConnConfig(conf)
+
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("error loading pgx driver: %w", err)
 	}
