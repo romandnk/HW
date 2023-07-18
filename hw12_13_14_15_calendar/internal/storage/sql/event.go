@@ -13,8 +13,9 @@ import (
 func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
 	var id string
 
-	query := fmt.Sprintf(`INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
-									VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, eventsTable)
+	query := fmt.Sprintf(`
+		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
+		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, eventsTable)
 
 	err := s.db.QueryRowContext(ctx, query,
 		event.ID,
@@ -35,15 +36,16 @@ func (s *Storage) Create(ctx context.Context, event models.Event) (string, error
 func (s *Storage) Update(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
-	query := fmt.Sprintf(`UPDATE %s SET 
-              title = $1, 
-              date = $2, 
-              duration = $3, 
-              description = $4, 
-              user_id = $5, 
-              notification_interval = $6 
-          WHERE id = $7 
-          RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+	query := fmt.Sprintf(`
+		UPDATE %s SET 
+        	title = $1, 
+            date = $2, 
+            duration = $3, 
+            description = $4, 
+            user_id = $5, 
+            notification_interval = $6 
+        WHERE id = $7 
+        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
 	err := s.db.QueryRowContext(ctx, query,
 		event.Title,
@@ -57,7 +59,7 @@ func (s *Storage) Update(ctx context.Context, id string, event models.Event) (mo
 		&updatedEvent.Description, &updatedEvent.UserID, &updatedEvent.NotificationInterval)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return updatedEvent, fmt.Errorf("no event with id %s: %w", id, err)
+			return updatedEvent, fmt.Errorf("no event with id %s", id)
 		}
 		return updatedEvent, fmt.Errorf("error updating event: %w", err)
 	}
@@ -78,7 +80,7 @@ func (s *Storage) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("delete validation error: %w", err)
 	}
 	if rows == 0 {
-		return fmt.Errorf("no event with id %s: %w", id, err)
+		return fmt.Errorf("no event with id %s", id)
 	}
 
 	return nil
@@ -87,8 +89,10 @@ func (s *Storage) Delete(ctx context.Context, id string) error {
 func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
-	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s WHERE date = $1`, eventsTable)
+	query := fmt.Sprintf(`
+		SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s 
+		WHERE date = $1`, eventsTable)
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
@@ -120,8 +124,10 @@ func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Eve
 func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
-	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
+	query := fmt.Sprintf(`
+		SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s 
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
@@ -153,8 +159,10 @@ func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Ev
 func (s *Storage) GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
-	query := fmt.Sprintf(`SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
+	query := fmt.Sprintf(`
+		SELECT id, title, date, duration, description, user_id, notification_interval
+		FROM %s 
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
