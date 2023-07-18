@@ -3,7 +3,7 @@ level = "INFO"
 representation = "JSON"
 
 [storage]
-type = "postgres"
+type = "memory"
 
 [storage.database]
 host = "localhost"

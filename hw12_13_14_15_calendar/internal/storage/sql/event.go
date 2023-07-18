@@ -13,10 +13,11 @@ import (
 func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
 	var id string
 
-	query := fmt.Sprintf(`INSERT INTO %s (title, date, duration, description, user_id, notification_interval)
-									VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`, eventsTable)
+	query := fmt.Sprintf(`INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
+									VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, eventsTable)
 
 	err := s.db.QueryRowContext(ctx, query,
+		event.ID,
 		event.Title,
 		event.Date,
 		event.Duration,
