@@ -18,15 +18,28 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
+type statusCodeRecorder struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (r *statusCodeRecorder) WriteHeader(statusCode int) {
+	r.statusCode = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
+}
+
 func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusCodeRecorder{ResponseWriter: w}
+
 		start := time.Now()
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(recorder, r)
 
 		duration := time.Since(start)
 
 		info := requestInformation(r, duration)
+		statusCode := recorder.statusCode
 
 		log.Info("Request info",
 			slog.String("client ip", info.ClientIP),
@@ -34,6 +47,7 @@ func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc
 			slog.String("method", info.Method),
 			slog.String("method path", info.Path),
 			slog.String("HTTP version", info.HTTPVersion),
+			slog.Int("status code", statusCode),
 			slog.String("processing time", info.Latency),
 			slog.String("user agent", info.UserAgent),
 		)
