@@ -8,6 +8,8 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+const EmptyStatusCode = "empty"
+
 type RequestInfo struct {
 	ClientIP    string
 	Date        string
@@ -39,7 +41,7 @@ func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc
 		duration := time.Since(start)
 
 		info := requestInformation(r, duration)
-		statusCode := recorder.statusCode
+		statusCode := processStatusCode(recorder.statusCode)
 
 		log.Info("Request info",
 			slog.String("client ip", info.ClientIP),
@@ -47,7 +49,7 @@ func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc
 			slog.String("method", info.Method),
 			slog.String("method path", info.Path),
 			slog.String("HTTP version", info.HTTPVersion),
-			slog.Int("status code", statusCode),
+			slog.String("status code", statusCode),
 			slog.String("processing time", info.Latency),
 			slog.String("user agent", info.UserAgent),
 		)
@@ -74,4 +76,11 @@ func requestInformation(r *http.Request, duration time.Duration) RequestInfo {
 		Latency:     latency,
 		UserAgent:   userAgent,
 	}
+}
+
+func processStatusCode(code int) string {
+	if code == 0 {
+		return EmptyStatusCode
+	}
+	return strconv.Itoa(code)
 }
