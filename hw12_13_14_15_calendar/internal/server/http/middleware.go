@@ -1,11 +1,11 @@
 package internalhttp
 
 import (
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"golang.org/x/exp/slog"
 	"net/http"
 	"strconv"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 const EmptyStatusCode = "empty"
@@ -30,7 +30,7 @@ func (r *statusCodeRecorder) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func middlewareLogging(log *slog.Logger, next http.HandlerFunc) http.HandlerFunc {
+func middlewareLogging(log *logger.Logger, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		recorder := &statusCodeRecorder{ResponseWriter: w}
 

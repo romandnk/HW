@@ -10,7 +10,7 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
+func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	var id string
 
 	query := fmt.Sprintf(`
@@ -33,7 +33,7 @@ func (s *Storage) Create(ctx context.Context, event models.Event) (string, error
 	return id, nil
 }
 
-func (s *Storage) Update(ctx context.Context, id string, event models.Event) (models.Event, error) {
+func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
 	query := fmt.Sprintf(`
@@ -67,7 +67,7 @@ func (s *Storage) Update(ctx context.Context, id string, event models.Event) (mo
 	return updatedEvent, nil
 }
 
-func (s *Storage) Delete(ctx context.Context, id string) error {
+func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
 	result, err := s.db.ExecContext(ctx, query, id)
@@ -86,7 +86,7 @@ func (s *Storage) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`
@@ -121,7 +121,7 @@ func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Eve
 	return events, nil
 }
 
-func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`
@@ -156,7 +156,7 @@ func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Ev
 	return events, nil
 }
 
-func (s *Storage) GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`

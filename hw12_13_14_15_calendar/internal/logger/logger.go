@@ -15,7 +15,11 @@ const (
 	textLogger = "TEXT"
 )
 
-func NewLogger(level string, representation string) *slog.Logger {
+type Logger struct {
+	log *slog.Logger
+}
+
+func NewLogger(level string, representation string) *Logger {
 	var log *slog.Logger
 
 	logOptions := slog.HandlerOptions{}
@@ -38,5 +42,19 @@ func NewLogger(level string, representation string) *slog.Logger {
 		log = slog.New(slog.NewTextHandler(os.Stdout, &logOptions))
 	}
 
-	return log
+	return &Logger{
+		log: log,
+	}
+}
+
+func (l *Logger) WriteLogInFile(path string) error {
+	return nil
+}
+
+func (l *Logger) Info(msg string, args ...any) {
+	l.log.Info(msg, args...)
+}
+
+func (l *Logger) Error(msg string, args ...any) {
+	l.log.Error(msg, args...)
 }

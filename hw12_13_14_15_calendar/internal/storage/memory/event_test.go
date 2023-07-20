@@ -3,8 +3,7 @@ package memorystorage
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"sort"
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
@@ -12,14 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorageCreate(t *testing.T) {
+func TestStorageCreateEvent(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
 	events := generateEvents("test create")
 
 	for j, event := range events {
-		id, _ := st.Create(ctx, event)
+		id, err := st.CreateEvent(ctx, event)
+		require.NoError(t, err)
 		events[j].ID = id
 	}
 
@@ -30,7 +30,7 @@ func TestStorageCreate(t *testing.T) {
 	}
 }
 
-func TestStorageUpdate(t *testing.T) {
+func TestStorageUpdateEvent(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
@@ -40,12 +40,13 @@ func TestStorageUpdate(t *testing.T) {
 	eventsResult := make([]models.Event, len(eventAfter))
 
 	for j, event := range eventBefore {
-		id, _ := st.Create(ctx, event)
+		id, err := st.CreateEvent(ctx, event)
+		require.NoError(t, err)
 		eventAfter[j].ID = id
 	}
 
 	for j, event := range eventAfter {
-		updatedEvent, err := st.Update(ctx, event.ID, event)
+		updatedEvent, err := st.UpdateEvent(ctx, event.ID, event)
 		require.NoError(t, err)
 		eventsResult[j] = updatedEvent
 	}
@@ -57,7 +58,7 @@ func TestStorageUpdate(t *testing.T) {
 	}
 }
 
-func TestStorageUpdateError(t *testing.T) {
+func TestStorageUpdateEventError(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
@@ -65,18 +66,19 @@ func TestStorageUpdateError(t *testing.T) {
 	eventAfter := generateEvents("test update after")
 
 	for _, event := range eventBefore {
-		_, _ = st.Create(ctx, event)
+		_, err := st.CreateEvent(ctx, event)
+		require.NoError(t, err)
 	}
 
 	for _, event := range eventAfter {
-		updatedEvent, err := st.Update(ctx, event.ID, event)
+		updatedEvent, err := st.UpdateEvent(ctx, event.ID, event)
 		require.Error(t, err)
 		require.Equal(t, fmt.Errorf("updating: no event with id %s", event.ID), err)
 		require.Equal(t, models.Event{}, updatedEvent)
 	}
 }
 
-func TestStorageDelete(t *testing.T) {
+func TestStorageDeleteEvent(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
@@ -85,21 +87,20 @@ func TestStorageDelete(t *testing.T) {
 	IDs := make([]string, len(events))
 
 	for j, event := range events {
-		id, _ := st.Create(ctx, event)
+		id, err := st.CreateEvent(ctx, event)
+		require.NoError(t, err)
 		IDs[j] = id
 	}
 
 	for _, id := range IDs {
-		err := st.Delete(ctx, id)
+		err := st.DeleteEvent(ctx, id)
 		require.NoError(t, err)
 	}
 
-	if len(st.events) != 0 {
-		t.Errorf("must be empty")
-	}
+	require.Len(t, st.events, 0, "must be empty")
 }
 
-func TestStorageDeleteError(t *testing.T) {
+func TestStorageDeleteEventError(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
@@ -108,22 +109,21 @@ func TestStorageDeleteError(t *testing.T) {
 	IDs := make([]string, len(events))
 
 	for j, event := range events {
-		id, _ := st.Create(ctx, event)
+		id, err := st.CreateEvent(ctx, event)
+		require.NoError(t, err)
 		IDs[j] = id + "suffix" // create nonexistent id
 	}
 
 	for _, id := range IDs {
-		err := st.Delete(ctx, id)
+		err := st.DeleteEvent(ctx, id)
 		require.Error(t, err)
 		require.Equal(t, fmt.Errorf("deleting: no event with id %s", id), err)
 	}
 
-	if len(st.events) != 100 {
-		t.Errorf("must be full")
-	}
+	require.Len(t, st.events, 100, "must be full")
 }
 
-func TestStorageGetAllByDay(t *testing.T) {
+func TestStorageGetAllByDayEvents(t *testing.T) {
 	testCases := []struct {
 		day       time.Time
 		expected  []time.Time
@@ -149,12 +149,12 @@ func TestStorageGetAllByDay(t *testing.T) {
 			events := generateEvents("test get all by day")
 
 			for _, event := range events {
-				_, _ = st.Create(ctx, event)
+				_, _ = st.CreateEvent(ctx, event)
 			}
 
 			actualDates := make([]time.Time, 0)
 
-			actualEvents, err := st.GetAllByDay(ctx, tc.day)
+			actualEvents, err := st.GetAllByDayEvents(ctx, tc.day)
 			require.NoError(t, err)
 
 			for _, events := range actualEvents {
@@ -162,12 +162,12 @@ func TestStorageGetAllByDay(t *testing.T) {
 			}
 
 			require.Equal(t, tc.totalDays, len(actualEvents))
-			require.True(t, reflect.DeepEqual(actualDates, tc.expected))
+			require.Equal(t, tc.expected, actualDates)
 		})
 	}
 }
 
-func TestStorageGetAllByWeek(t *testing.T) {
+func TestStorageGetAllByWeekEvents(t *testing.T) {
 	testCases := []struct {
 		fromDay   time.Time
 		expected  func(day time.Time) []time.Time
@@ -228,31 +228,27 @@ func TestStorageGetAllByWeek(t *testing.T) {
 			events := generateEvents("test get all by week")
 
 			for _, event := range events {
-				_, _ = st.Create(ctx, event)
+				_, _ = st.CreateEvent(ctx, event)
 			}
 
 			expectedDates := tc.expected(tc.fromDay)
 
 			actualDates := make([]time.Time, 0)
 
-			actualEvents, err := st.GetAllByWeek(ctx, tc.fromDay)
+			actualEvents, err := st.GetAllByWeekEvents(ctx, tc.fromDay)
 			require.NoError(t, err)
 
 			for _, events := range actualEvents {
 				actualDates = append(actualDates, events.Date)
 			}
 
-			sort.Slice(actualDates, func(i, j int) bool {
-				return actualDates[i].Before(actualDates[j])
-			})
-
-			require.True(t, reflect.DeepEqual(actualDates, expectedDates))
+			require.ElementsMatch(t, expectedDates, actualDates)
 			require.Equal(t, tc.totalDays, len(actualEvents))
 		})
 	}
 }
 
-func TestStorageGetAllByMonth(t *testing.T) {
+func TestStorageGetAllByMonthEvents(t *testing.T) {
 	testCases := []struct {
 		fromDay   time.Time
 		expected  func(day time.Time) []time.Time
@@ -313,25 +309,21 @@ func TestStorageGetAllByMonth(t *testing.T) {
 			events := generateEvents("test get all by month")
 
 			for _, event := range events {
-				_, _ = st.Create(ctx, event)
+				_, _ = st.CreateEvent(ctx, event)
 			}
 
 			expectedDates := tc.expected(tc.fromDay)
 
 			actualDates := make([]time.Time, 0)
 
-			actualEvents, err := st.GetAllByMonth(ctx, tc.fromDay)
+			actualEvents, err := st.GetAllByMonthEvents(ctx, tc.fromDay)
 			require.NoError(t, err)
 
 			for _, events := range actualEvents {
 				actualDates = append(actualDates, events.Date)
 			}
 
-			sort.Slice(actualDates, func(i, j int) bool {
-				return actualDates[i].Before(actualDates[j])
-			})
-
-			require.True(t, reflect.DeepEqual(actualDates, expectedDates))
+			require.ElementsMatch(t, expectedDates, actualDates)
 			require.Equal(t, tc.totalDays, len(actualEvents))
 		})
 	}
@@ -346,6 +338,7 @@ func generateEvents(titleText string) []models.Event {
 		currentDate = currentDate.AddDate(0, 0, 1)
 
 		event := models.Event{
+			ID:                   uuid.New().String(),
 			Title:                fmt.Sprintf("%s %d", titleText, i),
 			Date:                 currentDate,
 			Duration:             time.Duration(i),

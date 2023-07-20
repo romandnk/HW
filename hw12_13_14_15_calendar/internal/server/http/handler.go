@@ -1,24 +1,23 @@
 package internalhttp
 
 import (
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"net/http"
-
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
-	"golang.org/x/exp/slog"
 )
 
 type Handler struct {
 	*http.ServeMux
-	Storage storage.StoreEvent
+	Services *service.Service
 }
 
-func NewHandler(storage storage.StoreEvent) *Handler {
+func NewHandler(services *service.Service) *Handler {
 	return &Handler{
-		Storage: storage,
+		Services: services,
 	}
 }
 
-func (h *Handler) InitRoutes(log *slog.Logger) *http.ServeMux {
+func (h *Handler) InitRoutes(log *logger.Logger) *http.ServeMux {
 	router := http.NewServeMux()
 
 	router.HandleFunc("/", middlewareLogging(log, h.HelloWorld))

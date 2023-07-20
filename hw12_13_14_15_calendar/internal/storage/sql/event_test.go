@@ -15,11 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorageCreate(t *testing.T) {
+func TestStorageCreateEvent(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	event := models.Event{
@@ -54,21 +52,18 @@ func TestStorageCreate(t *testing.T) {
 
 	storage := NewStorageSQL(db)
 
-	id, err := storage.Create(ctx, event)
+	id, err := storage.CreateEvent(ctx, event)
 
 	require.NoError(t, err)
 	require.Equal(t, event.ID, id)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err, "there was unexpected result")
 }
 
-func TestStorageUpdate(t *testing.T) {
+func TestStorageUpdateEvent(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	eventBefore := models.Event{
@@ -119,20 +114,17 @@ func TestStorageUpdate(t *testing.T) {
 		driver.Value(eventAfter.NotificationInterval),
 		driver.Value(eventAfter.ID)).WillReturnRows(rowsAfter)
 
-	updatedEvent, err := storage.Update(ctx, eventBefore.ID, eventAfter)
+	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
 	require.NoError(t, err)
 	require.Equal(t, eventAfter, updatedEvent)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageUpdateError(t *testing.T) {
+func TestStorageUpdateEventError(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	eventBefore := models.Event{
@@ -179,21 +171,18 @@ func TestStorageUpdateError(t *testing.T) {
 		driver.Value(eventAfter.NotificationInterval),
 		driver.Value(eventAfter.ID)).WillReturnError(pgx.ErrNoRows)
 
-	updatedEvent, err := storage.Update(ctx, eventBefore.ID, eventAfter)
+	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
 	expectedError := fmt.Errorf("no event with id %s", eventBefore.ID)
 	require.EqualError(t, err, expectedError.Error())
 	require.Equal(t, models.Event{}, updatedEvent)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageDelete(t *testing.T) {
+func TestStorageDeleteEvent(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	id := uuid.New().String()
@@ -206,19 +195,16 @@ func TestStorageDelete(t *testing.T) {
 
 	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(driver.Value(id)).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = storage.Delete(ctx, id)
+	err = storage.DeleteEvent(ctx, id)
 	require.NoError(t, err)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageDeleteError(t *testing.T) {
+func TestStorageDeleteEventError(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	id := uuid.New().String()
@@ -231,20 +217,17 @@ func TestStorageDeleteError(t *testing.T) {
 
 	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(driver.Value(id)).WillReturnResult(sqlmock.NewResult(1, 0))
 
-	err = storage.Delete(ctx, id)
+	err = storage.DeleteEvent(ctx, id)
 	expectedError := fmt.Errorf("no event with id %s", id)
 	require.EqualError(t, err, expectedError.Error())
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByDay(t *testing.T) {
+func TestStorageGetAllByDayEvents(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -286,21 +269,18 @@ func TestStorageGetAllByDay(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByDay(ctx, date)
+	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 2)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByDayEmpty(t *testing.T) {
+func TestStorageGetAllByDayEventsEmpty(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -321,21 +301,18 @@ func TestStorageGetAllByDayEmpty(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByDay(ctx, date)
+	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByWeek(t *testing.T) {
+func TestStorageGetAllByWeekEvents(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -376,21 +353,18 @@ func TestStorageGetAllByWeek(t *testing.T) {
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByWeek(ctx, date)
+	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 2)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByWeekEmpty(t *testing.T) {
+func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -410,21 +384,18 @@ func TestStorageGetAllByWeekEmpty(t *testing.T) {
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByWeek(ctx, date)
+	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByMonth(t *testing.T) {
+func TestStorageGetAllByMonthEvents(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -465,21 +436,18 @@ func TestStorageGetAllByMonth(t *testing.T) {
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByMonth(ctx, date)
+	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 2)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
 
-func TestStorageGetAllByMonthEmpty(t *testing.T) {
+func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
@@ -499,12 +467,11 @@ func TestStorageGetAllByMonthEmpty(t *testing.T) {
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
 
-	actualEvents, err := storage.GetAllByMonth(ctx, date)
+	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
-	require.Equal(t, expectedEvents, actualEvents)
+	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Fatal("there was unexpected result")
-	}
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }

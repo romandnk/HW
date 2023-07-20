@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"log"
 	"net"
 	"os"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
-	st "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"golang.org/x/exp/slog"
@@ -21,7 +21,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "./config/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "./configs/calendar_config.toml", "Path to configuration file")
 }
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	var storage st.StoreEvent
+	var storage service.Storage
 
 	// use memory storage or sql storage
 	switch config.Storage.Type {
@@ -62,7 +62,9 @@ func main() {
 		storage = sqlstorage.NewStorageSQL(db)
 	}
 
-	handler := internalhttp.NewHandler(storage)
+	services := service.NewService(storage, logg)
+
+	handler := internalhttp.NewHandler(services)
 
 	server := internalhttp.NewServer(config.Server, handler.InitRoutes(logg))
 

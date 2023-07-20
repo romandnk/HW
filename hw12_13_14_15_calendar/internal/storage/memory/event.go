@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
 const day = 24 * time.Hour
 
-func (s *Storage) Create(ctx context.Context, event models.Event) (string, error) {
+func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -21,16 +20,12 @@ func (s *Storage) Create(ctx context.Context, event models.Event) (string, error
 	default:
 	}
 
-	id := uuid.New().String()
+	s.events[event.ID] = event
 
-	event.ID = id
-
-	s.events[id] = event
-
-	return id, nil
+	return event.ID, nil
 }
 
-func (s *Storage) Update(ctx context.Context, id string, event models.Event) (models.Event, error) {
+func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -49,7 +44,7 @@ func (s *Storage) Update(ctx context.Context, id string, event models.Event) (mo
 	return s.events[id], nil
 }
 
-func (s *Storage) Delete(ctx context.Context, id string) error {
+func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -68,13 +63,13 @@ func (s *Storage) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return []models.Event{}, ctx.Err()
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -89,13 +84,13 @@ func (s *Storage) GetAllByDay(ctx context.Context, date time.Time) ([]models.Eve
 	return events, nil
 }
 
-func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return []models.Event{}, ctx.Err()
+		return nil, ctx.Err()
 	default:
 	}
 
@@ -110,13 +105,13 @@ func (s *Storage) GetAllByWeek(ctx context.Context, date time.Time) ([]models.Ev
 	return events, nil
 }
 
-func (s *Storage) GetAllByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	select {
 	case <-ctx.Done():
-		return []models.Event{}, ctx.Err()
+		return nil, ctx.Err()
 	default:
 	}
 
