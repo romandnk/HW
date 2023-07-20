@@ -1,9 +1,10 @@
 package internalhttp
 
 import (
+	"net/http"
+
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
-	"net/http"
 )
 
 type Handler struct {

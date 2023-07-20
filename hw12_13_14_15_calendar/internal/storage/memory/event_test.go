@@ -3,10 +3,10 @@ package memorystorage
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/stretchr/testify/require"
 )

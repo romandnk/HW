@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"log"
 	"net"
 	"os"
@@ -11,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service" //nolint:gci
+
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http" //nolint:gci
 	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"golang.org/x/exp/slog"

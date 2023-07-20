@@ -1,11 +1,12 @@
 package internalhttp
 
 import (
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-	"golang.org/x/exp/slog"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"golang.org/x/exp/slog"
 )
 
 const EmptyStatusCode = "empty"

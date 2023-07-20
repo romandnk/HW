@@ -21,7 +21,7 @@ func NewPostgresDB(ctx context.Context, cfg DBConf) (*sql.DB, error) {
 
 	conf, err := pgx.ParseConfig(connString)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing config pgx: %s", err.Error())
+		return nil, fmt.Errorf("error parsing config pgx: %w", err)
 	}
 
 	connStr := stdlib.RegisterConnConfig(conf)
