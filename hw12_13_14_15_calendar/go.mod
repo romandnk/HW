@@ -1,6 +1,6 @@
 module github.com/romandnk/HW/hw12_13_14_15_calendar
 
-go 1.19
+go 1.20
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
