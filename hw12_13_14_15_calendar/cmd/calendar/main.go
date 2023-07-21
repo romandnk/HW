@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service" //nolint:gci
-
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http" //nolint:gci
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"golang.org/x/exp/slog"
@@ -46,12 +46,12 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
-	var storage service.Storage
+	var st storage.Storage
 
 	// use memory storage or sql storage
 	switch config.Storage.Type {
 	case "memory":
-		storage = memorystorage.NewStorageMemory()
+		st = memorystorage.NewStorageMemory()
 	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
 		if err != nil {
@@ -60,10 +60,10 @@ func main() {
 		}
 		defer db.Close()
 
-		storage = sqlstorage.NewStorageSQL(db)
+		st = sqlstorage.NewStorageSQL(db)
 	}
 
-	services := service.NewService(storage, logg)
+	services := service.NewService(st, logg)
 
 	handler := internalhttp.NewHandler(services)
 

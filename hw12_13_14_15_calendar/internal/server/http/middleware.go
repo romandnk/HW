@@ -1,6 +1,7 @@
 package internalhttp
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,7 +10,10 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const EmptyStatusCode = "empty"
+const (
+	EmptyStatusCode = "empty"
+	logPath         = "./logging/logging.txt"
+)
 
 type RequestInfo struct {
 	ClientIP    string
@@ -31,7 +35,7 @@ func (r *statusCodeRecorder) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func middlewareLogging(log *logger.Logger, next http.HandlerFunc) http.HandlerFunc {
+func middlewareLogging(log *logger.MyLogger, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		recorder := &statusCodeRecorder{ResponseWriter: w}
 
@@ -54,6 +58,20 @@ func middlewareLogging(log *logger.Logger, next http.HandlerFunc) http.HandlerFu
 			slog.String("processing time", info.Latency),
 			slog.String("user agent", info.UserAgent),
 		)
+
+		logInFileString := fmt.Sprintf("%s %s %s %s %s %s %s %s",
+			info.ClientIP,
+			info.Date,
+			info.Method,
+			info.Path,
+			info.HTTPVersion,
+			statusCode,
+			info.Latency,
+			info.UserAgent,
+		)
+		if err := log.WriteLogInFile(logPath, logInFileString); err != nil {
+			log.Error(fmt.Sprintf("error wriging log in file with path %s: %s", logPath, err.Error()))
+		}
 	}
 }
 

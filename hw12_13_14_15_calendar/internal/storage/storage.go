@@ -15,3 +15,7 @@ type StoreEvent interface {
 	GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error)
 	GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error)
 }
+
+type Storage interface {
+	StoreEvent
+}

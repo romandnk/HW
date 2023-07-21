@@ -73,7 +73,7 @@ func TestStorageUpdateEventError(t *testing.T) {
 	for _, event := range eventAfter {
 		updatedEvent, err := st.UpdateEvent(ctx, event.ID, event)
 		require.Error(t, err)
-		require.Equal(t, fmt.Errorf("updating: no event with id %s", event.ID), err)
+		require.EqualError(t, err, fmt.Errorf("updating: no event with id %s", event.ID).Error())
 		require.Equal(t, models.Event{}, updatedEvent)
 	}
 }
@@ -117,7 +117,7 @@ func TestStorageDeleteEventError(t *testing.T) {
 	for _, id := range IDs {
 		err := st.DeleteEvent(ctx, id)
 		require.Error(t, err)
-		require.Equal(t, fmt.Errorf("deleting: no event with id %s", id), err)
+		require.EqualError(t, err, fmt.Errorf("deleting: no event with id %s", id).Error())
 	}
 
 	require.Len(t, st.events, 100, "must be full")

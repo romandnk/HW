@@ -18,7 +18,7 @@ func NewHandler(services *service.Service) *Handler {
 	}
 }
 
-func (h *Handler) InitRoutes(log *logger.Logger) *http.ServeMux {
+func (h *Handler) InitRoutes(log *logger.MyLogger) *http.ServeMux {
 	router := http.NewServeMux()
 
 	router.HandleFunc("/", middlewareLogging(log, h.HelloWorld))
