@@ -1,14 +1,18 @@
 package memorystorage
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
+)
 
 type Storage struct {
-	// TODO
-	mu sync.RWMutex //nolint:unused
+	mu     sync.RWMutex
+	events map[string]models.Event
 }
 
-func New() *Storage {
-	return &Storage{}
+func NewStorageMemory() *Storage {
+	return &Storage{
+		events: make(map[string]models.Event),
+	}
 }
-
-// TODO

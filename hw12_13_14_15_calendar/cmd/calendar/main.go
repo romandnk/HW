@@ -3,21 +3,26 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/app"
-	"github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/fixme_my_friend/hw12_13_14_15_calendar/internal/storage/memory"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
+	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
+	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
+	"golang.org/x/exp/slog"
 )
 
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/calendar/config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "./configs/calendar_config.toml", "Path to configuration file")
 }
 
 func main() {
@@ -28,17 +33,41 @@ func main() {
 		return
 	}
 
-	config := NewConfig()
-	logg := logger.New(config.Logger.Level)
+	config, err := NewConfig(configFile)
+	if err != nil {
+		log.Fatalf("config error: %s", err.Error())
+	}
 
-	storage := memorystorage.New()
-	calendar := app.New(logg, storage)
+	logg := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
 
-	server := internalhttp.NewServer(logg, calendar)
+	logg.Info("use logging")
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
+
+	var st storage.Storage
+
+	// use memory storage or sql storage
+	switch config.Storage.Type {
+	case "memory":
+		st = memorystorage.NewStorageMemory()
+	case "postgres":
+		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
+		if err != nil {
+			logg.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+			os.Exit(1) //nolint:gocritic
+		}
+		defer db.Close()
+
+		st = sqlstorage.NewStorageSQL(db)
+	}
+
+	services := service.NewService(st, logg)
+
+	handler := internalhttp.NewHandler(services)
+
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes(logg))
 
 	go func() {
 		<-ctx.Done()
@@ -47,15 +76,18 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
+			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+			cancel()
+			os.Exit(1)
 		}
+
+		logg.Info("calendar is stopped")
 	}()
 
-	logg.Info("calendar is running...")
+	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 
-	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
+	if err := server.Start(); err != nil {
+		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
 		cancel()
-		os.Exit(1) //nolint:gocritic
 	}
 }

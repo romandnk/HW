@@ -1,20 +1,71 @@
 package logger
 
-import "fmt"
+import (
+	"os"
 
-type Logger struct { // TODO
+	"golang.org/x/exp/slog"
+)
+
+const (
+	infoLevel  = "INFO"
+	debugLevel = "DEBUG"
+	errorLevel = "ERROR"
+	warnLevel  = "WARN"
+	jsonLogger = "JSON"
+	textLogger = "TEXT"
+)
+
+type MyLogger struct {
+	log *slog.Logger
 }
 
-func New(level string) *Logger {
-	return &Logger{}
+type Logger interface {
+	WriteLogInFile(path string, result string) error
 }
 
-func (l Logger) Info(msg string) {
-	fmt.Println(msg)
+func NewLogger(level string, representation string) *MyLogger {
+	var log *slog.Logger
+
+	logOptions := slog.HandlerOptions{}
+
+	switch level {
+	case infoLevel:
+		logOptions.Level = slog.LevelInfo
+	case debugLevel:
+		logOptions.Level = slog.LevelDebug
+	case errorLevel:
+		logOptions.Level = slog.LevelError
+	case warnLevel:
+		logOptions.Level = slog.LevelWarn
+	}
+
+	switch representation {
+	case jsonLogger:
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &logOptions))
+	case textLogger:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &logOptions))
+	}
+
+	return &MyLogger{
+		log: log,
+	}
 }
 
-func (l Logger) Error(msg string) {
-	// TODO
+func (l *MyLogger) WriteLogInFile(path string, result string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if _, err = file.WriteString(result); err != nil {
+		return err
+	}
+	return nil
 }
 
-// TODO
+func (l *MyLogger) Info(msg string, args ...any) {
+	l.log.Info(msg, args...)
+}
+
+func (l *MyLogger) Error(msg string, args ...any) {
+	l.log.Error(msg, args...)
+}
