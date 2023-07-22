@@ -1,10 +1,10 @@
 CREATE TABLE events (
-    id VARCHAR(32) PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    date TIMESTAMP NOT NULL,
-    duration INTERVAL NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
+    duration INTERVAL HOUR TO SECOND NOT NULL,
     description TEXT,
-    user_id UUID NOT NULL,
+    user_id INTEGER NOT NULL,
     notification_interval INTERVAL
 );
 

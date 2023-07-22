@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+
 	"golang.org/x/exp/slog"
 )
 
@@ -25,28 +27,16 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
-type statusCodeRecorder struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (r *statusCodeRecorder) WriteHeader(statusCode int) {
-	r.statusCode = statusCode
-	r.ResponseWriter.WriteHeader(statusCode)
-}
-
-func middlewareLogging(log *logger.MyLogger, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		recorder := &statusCodeRecorder{ResponseWriter: w}
-
+func LoggerMiddleware(log *logger.MyLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
 
-		next.ServeHTTP(recorder, r)
+		c.Next()
 
 		duration := time.Since(start)
 
-		info := requestInformation(r, duration)
-		statusCode := processStatusCode(recorder.statusCode)
+		info := requestInformation(c.Request, duration)
+		statusCode := processStatusCode(c.Writer.Status())
 
 		log.Info("Request info",
 			slog.String("client ip", info.ClientIP),

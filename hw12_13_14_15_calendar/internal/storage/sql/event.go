@@ -27,7 +27,7 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 		event.NotificationInterval,
 	).Scan(&id)
 	if err != nil {
-		return id, fmt.Errorf("error creating event: %w", err)
+		return id, err
 	}
 
 	return id, nil
@@ -61,7 +61,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 		if errors.Is(err, pgx.ErrNoRows) {
 			return updatedEvent, fmt.Errorf("no event with id %s", id)
 		}
-		return updatedEvent, fmt.Errorf("error updating event: %w", err)
+		return updatedEvent, err
 	}
 
 	return updatedEvent, nil
@@ -72,12 +72,12 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 
 	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("error deleting event: %w", err)
+		return err
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("delete validation error: %w", err)
+		return err
 	}
 	if rows == 0 {
 		return fmt.Errorf("no event with id %s", id)
@@ -96,7 +96,7 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
-		return nil, fmt.Errorf("error selecting events by day: %w", err)
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -112,7 +112,7 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning rows: %w", err)
+			return nil, err
 		}
 
 		events = append(events, event)
@@ -131,7 +131,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
-		return nil, fmt.Errorf("error selecting events by day: %w", err)
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -147,7 +147,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning rows: %w", err)
+			return nil, err
 		}
 
 		events = append(events, event)
@@ -166,7 +166,7 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 
 	rows, err := s.db.QueryContext(ctx, query, date)
 	if err != nil {
-		return nil, fmt.Errorf("error selecting events by day: %w", err)
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -182,7 +182,7 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning rows: %w", err)
+			return nil, err
 		}
 
 		events = append(events, event)

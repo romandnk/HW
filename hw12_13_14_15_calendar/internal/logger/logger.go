@@ -20,6 +20,8 @@ type MyLogger struct {
 }
 
 type Logger interface {
+	Info(msg string, args ...any)
+	Error(msg string, args ...any)
 	WriteLogInFile(path string, result string) error
 }
 
@@ -52,11 +54,13 @@ func NewLogger(level string, representation string) *MyLogger {
 }
 
 func (l *MyLogger) WriteLogInFile(path string, result string) error {
-	file, err := os.Create(path)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
-	if _, err = file.WriteString(result); err != nil {
+	defer file.Close()
+
+	if _, err = file.WriteString(result + "\n"); err != nil {
 		return err
 	}
 	return nil

@@ -36,7 +36,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 	}
 
 	if _, ok := s.events[id]; !ok {
-		return models.Event{}, fmt.Errorf("updating: no event with id %s", id)
+		return models.Event{}, fmt.Errorf("no event with id %s", id)
 	}
 
 	s.events[id] = event
@@ -55,7 +55,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	}
 
 	if _, ok := s.events[id]; !ok {
-		return fmt.Errorf("deleting: no event with id %s", id)
+		return fmt.Errorf("no event with id %s", id)
 	}
 
 	delete(s.events, id)

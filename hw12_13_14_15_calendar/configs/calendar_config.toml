@@ -1,9 +1,9 @@
 [logger]
 level = "INFO"
-representation = "JSON"
+representation = "TEXT"
 
 [storage]
-type = "memory"
+type = "postgres"
 
 [storage.database]
 host = "localhost"
