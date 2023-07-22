@@ -36,7 +36,6 @@ func LoggerMiddleware(log *logger.MyLogger) gin.HandlerFunc {
 		duration := time.Since(start)
 
 		info := requestInformation(c.Request, duration)
-		statusCode := processStatusCode(c.Writer.Status())
 
 		log.Info("Request info",
 			slog.String("client ip", info.ClientIP),
@@ -44,18 +43,18 @@ func LoggerMiddleware(log *logger.MyLogger) gin.HandlerFunc {
 			slog.String("method", info.Method),
 			slog.String("method path", info.Path),
 			slog.String("HTTP version", info.HTTPVersion),
-			slog.String("status code", statusCode),
+			slog.String("status code", strconv.Itoa(c.Writer.Status())),
 			slog.String("processing time", info.Latency),
 			slog.String("user agent", info.UserAgent),
 		)
 
-		logInFileString := fmt.Sprintf("%s %s %s %s %s %s %s %s",
+		logInFileString := fmt.Sprintf("%s %s %s %s %s %d %s %s",
 			info.ClientIP,
 			info.Date,
 			info.Method,
 			info.Path,
 			info.HTTPVersion,
-			statusCode,
+			c.Writer.Status(),
 			info.Latency,
 			info.UserAgent,
 		)
@@ -85,11 +84,4 @@ func requestInformation(r *http.Request, duration time.Duration) RequestInfo {
 		Latency:     latency,
 		UserAgent:   userAgent,
 	}
-}
-
-func processStatusCode(code int) string {
-	if code == 0 {
-		return EmptyStatusCode
-	}
-	return strconv.Itoa(code)
 }
