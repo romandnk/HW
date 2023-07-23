@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -36,7 +37,56 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
-	query := fmt.Sprintf(`
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	if err != nil {
+		return updatedEvent, err
+	}
+	defer func(err *error) {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			*err = rbErr
+		}
+	}(&err)
+
+	querySelect := fmt.Sprintf(`
+		SELECT title, date, duration, description, user_id, notification_interval
+		FROM %s 
+		WHERE id = $1`, eventsTable)
+
+	err = tx.QueryRowContext(ctx, querySelect, id).Scan(
+		&updatedEvent.Title,
+		&updatedEvent.Date,
+		&updatedEvent.Duration,
+		&updatedEvent.Description,
+		&updatedEvent.UserID,
+		&updatedEvent.NotificationInterval,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return updatedEvent, fmt.Errorf("no event with id %s", id)
+		}
+		return updatedEvent, err
+	}
+
+	if event.Title != "" {
+		updatedEvent.Title = event.Title
+	}
+	if event.Date.IsZero() {
+		updatedEvent.Date = event.Date
+	}
+	if event.Duration != 0 {
+		updatedEvent.Duration = event.Duration
+	}
+	if event.Description != "" {
+		updatedEvent.Description = event.Description
+	}
+	if event.UserID != 0 {
+		updatedEvent.UserID = event.UserID
+	}
+	if event.NotificationInterval != 0 {
+		updatedEvent.NotificationInterval = event.NotificationInterval
+	}
+
+	queryUpdate := fmt.Sprintf(`
 		UPDATE %s SET 
         	title = $1, 
             date = $2, 
@@ -47,20 +97,22 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
         WHERE id = $7 
         RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	err := s.db.QueryRowContext(ctx, query,
-		event.Title,
-		event.Date,
-		event.Duration,
-		event.Description,
-		event.UserID,
-		event.NotificationInterval,
+	err = s.db.QueryRowContext(ctx, queryUpdate,
+		updatedEvent.Title,
+		updatedEvent.Date,
+		updatedEvent.Duration,
+		updatedEvent.Description,
+		updatedEvent.UserID,
+		updatedEvent.NotificationInterval,
 		id,
 	).Scan(&updatedEvent.ID, &updatedEvent.Title, &updatedEvent.Date, &updatedEvent.Duration,
 		&updatedEvent.Description, &updatedEvent.UserID, &updatedEvent.NotificationInterval)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return updatedEvent, fmt.Errorf("no event with id %s", id)
-		}
+		return updatedEvent, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
 		return updatedEvent, err
 	}
 

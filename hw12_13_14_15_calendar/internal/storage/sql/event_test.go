@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/stretchr/testify/require"
 )
@@ -90,9 +90,24 @@ func TestStorageUpdateEvent(t *testing.T) {
 
 	storage := NewStorageSQL(db)
 
-	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	rowsAfter := sqlmock.NewRows(columns).AddRow(eventAfter.ID, eventAfter.Title, eventAfter.Date, eventAfter.Duration,
-		eventAfter.Description, eventAfter.UserID, eventAfter.NotificationInterval)
+	columnsSelect := []string{"title", "date", "duration", "description", "user_id", "notification_interval"}
+	rows := sqlmock.NewRows(columnsSelect).AddRow(eventBefore.Title, eventBefore.Date, eventBefore.Duration,
+		eventBefore.Description, eventBefore.UserID, eventBefore.NotificationInterval)
+
+	querySelect := fmt.Sprintf(`
+			SELECT 
+			    title, 
+			    date, 
+			    duration,
+			    description,
+			    user_id,
+			    notification_interval
+			FROM %s 
+			WHERE id = $1`, eventsTable)
+
+	columnsUpdate := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
+	rowsAfter := sqlmock.NewRows(columnsUpdate).AddRow(eventAfter.ID, eventAfter.Title, eventAfter.Date,
+		eventAfter.Duration, eventAfter.Description, eventAfter.UserID, eventAfter.NotificationInterval)
 
 	queryUpdate := fmt.Sprintf(`
 		UPDATE %s SET 
@@ -105,6 +120,8 @@ func TestStorageUpdateEvent(t *testing.T) {
           WHERE id = $7 
           RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(querySelect)).WithArgs(driver.Value(eventAfter.ID)).WillReturnRows(rows)
 	mock.ExpectQuery(regexp.QuoteMeta(queryUpdate)).WithArgs(
 		driver.Value(eventAfter.Title),
 		driver.Value(eventAfter.Date),
@@ -113,6 +130,7 @@ func TestStorageUpdateEvent(t *testing.T) {
 		driver.Value(eventAfter.UserID),
 		driver.Value(eventAfter.NotificationInterval),
 		driver.Value(eventAfter.ID)).WillReturnRows(rowsAfter)
+	mock.ExpectCommit()
 
 	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
 	require.NoError(t, err)
@@ -151,25 +169,20 @@ func TestStorageUpdateEventError(t *testing.T) {
 
 	storage := NewStorageSQL(db)
 
-	queryUpdate := fmt.Sprintf(`
-		UPDATE %s SET 
-              title = $1, 
-              date = $2, 
-              duration = $3, 
-              description = $4, 
-              user_id = $5, 
-              notification_interval = $6 
-          WHERE id = $7 
-          RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+	querySelect := fmt.Sprintf(`
+			SELECT 
+			    title, 
+			    date, 
+			    duration,
+			    description,
+			    user_id,
+			    notification_interval
+			FROM %s 
+			WHERE id = $1`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryUpdate)).WithArgs(
-		driver.Value(eventAfter.Title),
-		driver.Value(eventAfter.Date),
-		driver.Value(eventAfter.Duration),
-		driver.Value(eventAfter.Description),
-		driver.Value(eventAfter.UserID),
-		driver.Value(eventAfter.NotificationInterval),
-		driver.Value(eventAfter.ID)).WillReturnError(pgx.ErrNoRows)
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(querySelect)).WithArgs(driver.Value(eventAfter.ID)).WillReturnError(pgx.ErrNoRows)
+	mock.ExpectRollback()
 
 	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
 	expectedError := fmt.Errorf("no event with id %s", eventBefore.ID)
