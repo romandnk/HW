@@ -11,25 +11,25 @@ import (
 func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	id := uuid.New().String()
 	event.ID = id
-	return s.storage.CreateEvent(ctx, event) //nolint:nolintlint,gci
+	return s.event.CreateEvent(ctx, event)
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
-	return s.storage.UpdateEvent(ctx, id, event) //nolint:nolintlint,gci
+	return s.event.UpdateEvent(ctx, id, event)
 }
 
 func (s *Service) DeleteEvent(ctx context.Context, id string) error {
-	return s.storage.DeleteEvent(ctx, id) //nolint:nolintlint,gci
+	return s.event.DeleteEvent(ctx, id)
 }
 
 func (s *Service) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
-	return s.storage.GetAllByDayEvents(ctx, date) //nolint:nolintlint,gci
+	return s.event.GetAllByDayEvents(ctx, date)
 }
 
 func (s *Service) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
-	return s.storage.GetAllByWeekEvents(ctx, date) //nolint:nolintlint,gci
+	return s.event.GetAllByWeekEvents(ctx, date)
 }
 
 func (s *Service) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
-	return s.storage.GetAllByMonthEvents(ctx, date)
+	return s.event.GetAllByMonthEvents(ctx, date)
 }

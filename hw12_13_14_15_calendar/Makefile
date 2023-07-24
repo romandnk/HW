@@ -40,7 +40,7 @@ lint: install-lint-deps
 
 # local tests
 db:
-	docker run -d --name pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_DB=calendar_db -p 5432:5432 postgres:latest && make migrage
+	docker run -d --name pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_DB=calendar_db -p 5432:5432 postgres:latest
 
 d:
 	docker stop pg && docker rm pg

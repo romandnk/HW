@@ -2,14 +2,13 @@ package internalhttp
 
 import (
 	"fmt"
+	"golang.org/x/exp/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-
-	"golang.org/x/exp/slog"
 )
 
 const (
@@ -27,7 +26,7 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
-func LoggerMiddleware(log *logger.MyLogger) gin.HandlerFunc {
+func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 

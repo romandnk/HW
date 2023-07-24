@@ -63,11 +63,11 @@ func main() {
 		st = sqlstorage.NewStorageSQL(db)
 	}
 
-	services := service.NewService(st, logg)
+	services := service.NewService(st)
 
-	handler := internalhttp.NewHandler(services)
+	handler := internalhttp.NewHandler(services, logg)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes(logg))
+	server := internalhttp.NewServer(config.Server, handler.InitRoutes())
 
 	go func() {
 		<-ctx.Done()

@@ -11,7 +11,7 @@ type response struct {
 
 func (h *Handler) newResponse(c *gin.Context, action string, code int, message string, err error) {
 	if err != nil {
-		h.Services.Error(message, slog.String("action", action), slog.String("error", err.Error()))
+		h.Logger.Error(message, slog.String("action", action), slog.String("error", err.Error()))
 	}
 	c.AbortWithStatusJSON(code, response{Message: message})
 }

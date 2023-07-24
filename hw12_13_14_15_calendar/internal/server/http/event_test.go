@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
+	"golang.org/x/exp/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,6 +22,8 @@ func TestHandlerCreateEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
+	logger := mock_logger.NewMockLogger(ctrl)
+
 	expectedEvent := models.Event{
 		Title:                "Test Event",
 		Date:                 time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -31,7 +35,7 @@ func TestHandlerCreateEvent(t *testing.T) {
 	expectedID := "test uuid"
 	services.EXPECT().CreateEvent(gomock.Any(), expectedEvent).Return(expectedID, nil)
 
-	handler := NewHandler(services)
+	handler := NewHandler(services, logger)
 
 	url := "/api/v1/events"
 	r := gin.Default()
@@ -67,4 +71,100 @@ func TestHandlerCreateEvent(t *testing.T) {
 	id, ok := responseBody["id"]
 	require.Equal(t, expectedID, id)
 	require.True(t, ok)
+}
+
+//nolint:funlen
+func TestHandlerCreateEventError(t *testing.T) {
+	testCases := []struct {
+		name            string
+		expectedErr     string
+		expectedMessage string
+		requestBody     map[string]interface{}
+	}{
+		{
+			name:            "empty title",
+			expectedErr:     "Key: 'bodyEvent.Title' Error:Field validation for 'Title' failed on the 'required' tag",
+			expectedMessage: "error parsing request body",
+			requestBody: map[string]interface{}{
+				"title":    "",
+				"date":     "2023-07-22T12:00:00Z",
+				"duration": "1h30m",
+				"user_id":  1,
+			},
+		},
+		{
+			name:            "invalid date",
+			expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
+			expectedMessage: "error parsing date",
+			requestBody: map[string]interface{}{
+				"title":    "test",
+				"date":     "date",
+				"duration": "1h30m",
+				"user_id":  1,
+			},
+		},
+		{
+			name:            "invalid duration",
+			expectedErr:     "time: unknown unit \"y\" in duration \"1y1h30m\"",
+			expectedMessage: "error parsing duration",
+			requestBody: map[string]interface{}{
+				"title":    "test",
+				"date":     "2023-07-22T12:00:00Z",
+				"duration": "1y1h30m",
+				"user_id":  1,
+			},
+		},
+		{
+			name:            "invalid notificationInterval",
+			expectedErr:     "time: invalid duration \"interval\"",
+			expectedMessage: "error parsing notificationInterval",
+			requestBody: map[string]interface{}{
+				"title":                 "test",
+				"date":                  "2023-07-22T12:00:00Z",
+				"duration":              "1h30m",
+				"user_id":               1,
+				"notification_interval": "interval",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			services := mock_service.NewMockServices(ctrl)
+			logger := mock_logger.NewMockLogger(ctrl)
+
+			logger.EXPECT().Error(tc.expectedMessage, slog.String("action", "create"), slog.String("error", tc.expectedErr))
+
+			handler := NewHandler(services, logger)
+
+			url := "/api/v1/events"
+			r := gin.Default()
+			r.POST(url, handler.CreateEvent)
+
+			jsonBody, err := json.Marshal(tc.requestBody)
+			require.NoError(t, err)
+
+			w := httptest.NewRecorder()
+
+			ctx := context.Background()
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusBadRequest, w.Code)
+
+			var responseBody map[string]interface{}
+			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
+			require.NoError(t, err)
+
+			message, ok := responseBody["message"]
+			require.Equal(t, tc.expectedMessage, message)
+			require.True(t, ok)
+		})
+	}
 }

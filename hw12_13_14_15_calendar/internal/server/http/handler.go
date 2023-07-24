@@ -9,17 +9,19 @@ import (
 type Handler struct {
 	*gin.Engine
 	Services service.Services
+	Logger   logger.Logger
 }
 
-func NewHandler(services service.Services) *Handler {
+func NewHandler(services service.Services, logger logger.Logger) *Handler {
 	return &Handler{
 		Services: services,
+		Logger:   logger,
 	}
 }
 
-func (h *Handler) InitRoutes(log *logger.MyLogger) *gin.Engine {
+func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
-	router.Use(LoggerMiddleware(log))
+	router.Use(LoggerMiddleware(h.Logger))
 	gin.SetMode(gin.ReleaseMode)
 	h.Engine = router
 
@@ -30,7 +32,7 @@ func (h *Handler) InitRoutes(log *logger.MyLogger) *gin.Engine {
 			adverts := version.Group("/events")
 			{
 				adverts.POST("", h.CreateEvent)
-
+				adverts.PATCH("/:id", h.UpdateEvent)
 				//adverts.DELETE("", h.DeleteEvent)
 				//adverts.GET("/:date", h.GetAllByDayEvents)
 				//adverts.GET("/:date", h.GetAllByWeekEvents)
