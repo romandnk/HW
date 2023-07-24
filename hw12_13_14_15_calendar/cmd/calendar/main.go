@@ -55,7 +55,9 @@ func main() {
 	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
 		if err != nil {
-			logg.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+			logg.Error("error connecting db",
+				slog.String("error", err.Error()),
+				slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
 			os.Exit(1) //nolint:gocritic
 		}
 		defer db.Close()

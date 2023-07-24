@@ -2,19 +2,28 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
+var ErrInvalidUserID = errors.New("user id must be positive number")
+
 func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
+	if event.UserID <= 0 {
+		return "", ErrInvalidUserID
+	}
 	id := uuid.New().String()
 	event.ID = id
 	return s.event.CreateEvent(ctx, event)
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
+	if event.UserID <= 0 {
+		return models.Event{}, ErrInvalidUserID
+	}
 	return s.event.UpdateEvent(ctx, id, event)
 }
 

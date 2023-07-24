@@ -24,7 +24,7 @@ func NewPostgresDB(ctx context.Context, cfg DBConf) (PgxIface, error) {
 
 	db, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting db: %w", err)
+		return nil, err
 	}
 
 	return db, nil

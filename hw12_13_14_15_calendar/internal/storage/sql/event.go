@@ -69,7 +69,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 	if event.Title != "" {
 		updatedEvent.Title = event.Title
 	}
-	if event.Date.IsZero() {
+	if !event.Date.IsZero() {
 		updatedEvent.Date = event.Date
 	}
 	if event.Duration != 0 {
