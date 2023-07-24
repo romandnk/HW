@@ -2,14 +2,11 @@ package sqlstorage
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgresDB(ctx context.Context, cfg DBConf) (*sql.DB, error) {
+func NewPostgresDB(ctx context.Context, cfg DBConf) (PgxIface, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.Username,
 		cfg.Password,
@@ -19,25 +16,15 @@ func NewPostgresDB(ctx context.Context, cfg DBConf) (*sql.DB, error) {
 		cfg.SSLMode,
 	)
 
-	conf, err := pgx.ParseConfig(connString)
+	config, err := pgxpool.ParseConfig(connString)
+	config.MaxConns = int32(cfg.MaxConns)
+	config.MinConns = int32(cfg.MinConns)
+	config.MaxConnLifetime = cfg.MaxConnLifetime
+	config.MaxConnIdleTime = cfg.MaxConnIdleTime
+
+	db, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing config pgx: %w", err)
-	}
-
-	connStr := stdlib.RegisterConnConfig(conf)
-
-	db, err := sql.Open("pgx", connStr)
-	if err != nil {
-		return nil, fmt.Errorf("error loading pgx driver: %w", err)
-	}
-
-	db.SetMaxOpenConns(cfg.MaxConns)
-	db.SetMaxIdleConns(cfg.MinConns)
-	db.SetConnMaxLifetime(cfg.MaxConnLifetime)
-	db.SetConnMaxIdleTime(cfg.MaxConnIdleTime)
-
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("error connecting to db: %w", err)
+		return nil, fmt.Errorf("error connecting db: %w", err)
 	}
 
 	return db, nil

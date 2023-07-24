@@ -2,7 +2,6 @@ package sqlstorage
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -16,17 +15,17 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, eventsTable)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id`, eventsTable)
 
-	err := s.db.QueryRowContext(ctx, query,
+	err := s.db.QueryRow(ctx, query,
 		event.ID,
 		event.Title,
 		event.Date,
 		event.Duration,
 		event.Description,
 		event.UserID,
-		event.NotificationInterval,
-	).Scan(&id)
+		event.NotificationInterval).Scan(&id)
 	if err != nil {
 		return id, err
 	}
@@ -37,12 +36,12 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return updatedEvent, err
 	}
 	defer func(err *error) {
-		if rbErr := tx.Rollback(); rbErr != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
 			*err = rbErr
 		}
 	}(&err)
@@ -52,7 +51,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 		FROM %s 
 		WHERE id = $1`, eventsTable)
 
-	err = tx.QueryRowContext(ctx, querySelect, id).Scan(
+	err = tx.QueryRow(ctx, querySelect, id).Scan(
 		&updatedEvent.Title,
 		&updatedEvent.Date,
 		&updatedEvent.Duration,
@@ -97,7 +96,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
         WHERE id = $7 
         RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	err = s.db.QueryRowContext(ctx, queryUpdate,
+	err = s.db.QueryRow(ctx, queryUpdate,
 		updatedEvent.Title,
 		updatedEvent.Date,
 		updatedEvent.Duration,
@@ -111,7 +110,7 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 		return updatedEvent, err
 	}
 
-	err = tx.Commit()
+	err = tx.Commit(ctx)
 	if err != nil {
 		return updatedEvent, err
 	}
@@ -122,15 +121,13 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
-	result, err := s.db.ExecContext(ctx, query, id)
+	result, err := s.db.Exec(ctx, query, id)
 	if err != nil {
 		return err
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
+	rows := result.RowsAffected()
+
 	if rows == 0 {
 		return fmt.Errorf("no event with id %s", id)
 	}
@@ -146,7 +143,7 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 		FROM %s 
 		WHERE date = $1`, eventsTable)
 
-	rows, err := s.db.QueryContext(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +178,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 		FROM %s 
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
 
-	rows, err := s.db.QueryContext(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +213,7 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 		FROM %s 
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
 
-	rows, err := s.db.QueryContext(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, err
 	}

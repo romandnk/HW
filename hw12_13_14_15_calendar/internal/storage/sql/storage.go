@@ -1,7 +1,9 @@
 package sqlstorage
 
 import (
-	"database/sql"
+	"context"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 )
 
@@ -20,11 +22,21 @@ type DBConf struct {
 	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
 }
 
-type Storage struct {
-	db *sql.DB
+type PgxIface interface {
+	Close()
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
+	Begin(ctx context.Context) (pgx.Tx, error)
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
 }
 
-func NewStorageSQL(db *sql.DB) *Storage {
+type Storage struct {
+	db PgxIface
+}
+
+func NewStorageSQL(db PgxIface) *Storage {
 	return &Storage{
 		db: db,
 	}
