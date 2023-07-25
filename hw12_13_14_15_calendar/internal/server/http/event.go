@@ -10,10 +10,10 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-type bodyEventCreate struct {
-	Title                string `json:"title" binding:"required"`
-	Date                 string `json:"date" binding:"required"`
-	Duration             string `json:"duration" binding:"required"`
+type bodyEvent struct {
+	Title                string `json:"title"`
+	Date                 string `json:"date"`
+	Duration             string `json:"duration"`
 	Description          string `json:"description"`
 	UserID               int    `json:"user_id"`
 	NotificationInterval string `json:"notification_interval"`
@@ -21,7 +21,7 @@ type bodyEventCreate struct {
 
 func (h *Handler) CreateEvent(c *gin.Context) {
 	var event models.Event
-	var eventFromBody bodyEventCreate
+	var eventFromBody bodyEvent
 
 	if err := c.ShouldBindJSON(&eventFromBody); err != nil {
 		h.newResponse(c, "create", http.StatusBadRequest, "error parsing request body", err)
@@ -57,22 +57,13 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 
 	id, err := h.Services.CreateEvent(c, event)
 	if err != nil {
-		h.newResponse(c, "create", http.StatusInternalServerError, "error creating event", err)
+		h.newResponse(c, "create", http.StatusBadRequest, "error creating event", err)
 		return
 	}
 
 	c.JSON(http.StatusCreated, map[string]interface{}{
 		"id": id,
 	})
-}
-
-type bodyEventUpdate struct {
-	Title                string `json:"title"`
-	Date                 string `json:"date"`
-	Duration             string `json:"duration"`
-	Description          string `json:"description"`
-	UserID               int    `json:"user_id"`
-	NotificationInterval string `json:"notification_interval"`
 }
 
 type Response struct {
@@ -97,7 +88,7 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	var eventFromBody bodyEventUpdate
+	var eventFromBody bodyEvent
 
 	if err := c.ShouldBindJSON(&eventFromBody); err != nil {
 		h.newResponse(c, "update", http.StatusBadRequest, "error parsing request body", err)
@@ -142,7 +133,7 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 
 	updatedEvent, err := h.Services.UpdateEvent(c, parsedID.String(), event)
 	if err != nil {
-		h.newResponse(c, "update", http.StatusInternalServerError, "error updating event", err)
+		h.newResponse(c, "update", http.StatusBadRequest, "error updating event", err)
 		return
 	}
 

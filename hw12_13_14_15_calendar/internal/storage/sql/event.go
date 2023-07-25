@@ -2,6 +2,7 @@ package sqlstorage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -33,32 +34,40 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 	return id, nil
 }
 
+type eventForUpdate struct {
+	Title                sql.NullString
+	Date                 sql.NullTime
+	Duration             sql.NullString
+	Description          sql.NullString
+	UserID               sql.NullInt64
+	NotificationInterval sql.NullString
+}
+
 func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		return updatedEvent, err
-	}
-	defer func(err *error) {
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			*err = rbErr
-		}
-	}(&err)
+	query := fmt.Sprintf(`
+		UPDATE %s SET 
+        	title = COALESCE($1, title),
+            date = COALESCE($2, date),
+            duration = COALESCE($3, duration),
+            description = COALESCE($4, description),
+            user_id = COALESCE($5, user_id),
+            notification_interval = COALESCE($6, notification_interval)
+        WHERE id = $7 
+        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	querySelect := fmt.Sprintf(`
-		SELECT title, date, duration, description, user_id, notification_interval
-		FROM %s 
-		WHERE id = $1`, eventsTable)
+	eventUpdating := checkEmptyFields(event)
 
-	err = tx.QueryRow(ctx, querySelect, id).Scan(
-		&updatedEvent.Title,
-		&updatedEvent.Date,
-		&updatedEvent.Duration,
-		&updatedEvent.Description,
-		&updatedEvent.UserID,
-		&updatedEvent.NotificationInterval,
-	)
+	err := s.db.QueryRow(ctx, query,
+		eventUpdating.Title,
+		eventUpdating.Date,
+		eventUpdating.Duration,
+		eventUpdating.Description,
+		eventUpdating.UserID,
+		eventUpdating.NotificationInterval,
+		id).Scan(&updatedEvent.ID, &updatedEvent.Title, &updatedEvent.Date, &updatedEvent.Duration,
+		&updatedEvent.Description, &updatedEvent.UserID, &updatedEvent.NotificationInterval)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return updatedEvent, fmt.Errorf("no event with id %s", id)
@@ -66,56 +75,36 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 		return updatedEvent, err
 	}
 
-	if event.Title != "" {
-		updatedEvent.Title = event.Title
-	}
-	if !event.Date.IsZero() {
-		updatedEvent.Date = event.Date
-	}
-	if event.Duration != 0 {
-		updatedEvent.Duration = event.Duration
-	}
-	if event.Description != "" {
-		updatedEvent.Description = event.Description
-	}
-	if event.UserID != 0 {
-		updatedEvent.UserID = event.UserID
-	}
-	if event.NotificationInterval != 0 {
-		updatedEvent.NotificationInterval = event.NotificationInterval
-	}
-
-	queryUpdate := fmt.Sprintf(`
-		UPDATE %s SET 
-        	title = $1, 
-            date = $2, 
-            duration = $3, 
-            description = $4, 
-            user_id = $5, 
-            notification_interval = $6 
-        WHERE id = $7 
-        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
-
-	err = s.db.QueryRow(ctx, queryUpdate,
-		updatedEvent.Title,
-		updatedEvent.Date,
-		updatedEvent.Duration,
-		updatedEvent.Description,
-		updatedEvent.UserID,
-		updatedEvent.NotificationInterval,
-		id,
-	).Scan(&updatedEvent.ID, &updatedEvent.Title, &updatedEvent.Date, &updatedEvent.Duration,
-		&updatedEvent.Description, &updatedEvent.UserID, &updatedEvent.NotificationInterval)
-	if err != nil {
-		return updatedEvent, err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return updatedEvent, err
-	}
-
 	return updatedEvent, nil
+}
+
+func checkEmptyFields(event models.Event) eventForUpdate {
+	return eventForUpdate{
+		Title: sql.NullString{
+			String: event.Title,
+			Valid:  event.Title != "",
+		},
+		Date: sql.NullTime{
+			Time:  event.Date,
+			Valid: !event.Date.IsZero(),
+		},
+		Duration: sql.NullString{
+			String: event.Duration.String(),
+			Valid:  event.Duration != 0,
+		},
+		Description: sql.NullString{
+			String: event.Description,
+			Valid:  event.Description != "",
+		},
+		UserID: sql.NullInt64{
+			Int64: int64(event.UserID),
+			Valid: event.UserID != 0,
+		},
+		NotificationInterval: sql.NullString{
+			String: event.NotificationInterval.String(),
+			Valid:  event.NotificationInterval != 0,
+		},
+	}
 }
 
 func (s *Storage) DeleteEvent(ctx context.Context, id string) error {

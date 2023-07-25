@@ -9,21 +9,44 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-var ErrInvalidUserID = errors.New("user id must be positive number")
+var (
+	ErrInvalidUserID               = errors.New("user id must not be negative number")
+	ErrEmptyTitle                  = errors.New("title cannot be empty")
+	ErrInvalidDuration             = errors.New("duration cannot be non-positive")
+	ErrInvalidNotificationInterval = errors.New("notification interval cannot be negative")
+)
 
 func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
+	if event.Title == "" {
+		return "", ErrEmptyTitle
+	}
+	if event.Duration <= 0 {
+		return "", ErrInvalidDuration
+	}
 	if event.UserID <= 0 {
 		return "", ErrInvalidUserID
 	}
+	if event.NotificationInterval < 0 {
+		return "", ErrInvalidNotificationInterval
+	}
+
 	id := uuid.New().String()
 	event.ID = id
 	return s.event.CreateEvent(ctx, event)
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
-	if event.UserID <= 0 {
-		return models.Event{}, ErrInvalidUserID
+	var emptyEvent models.Event
+	if event.Duration < 0 {
+		return emptyEvent, ErrInvalidDuration
 	}
+	if event.UserID < 0 {
+		return emptyEvent, ErrInvalidUserID
+	}
+	if event.NotificationInterval < 0 {
+		return emptyEvent, ErrInvalidNotificationInterval
+	}
+
 	return s.event.UpdateEvent(ctx, id, event)
 }
 
