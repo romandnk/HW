@@ -34,9 +34,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 				adverts.POST("", h.CreateEvent)
 				adverts.PATCH("/:id", h.UpdateEvent)
 				adverts.DELETE("/:id", h.DeleteEvent)
-				//adverts.GET("/:date", h.GetAllByDayEvents)
-				//adverts.GET("/:date", h.GetAllByWeekEvents)
-				//adverts.GET("/:date", h.GetAllByMonthEvents)
+				adverts.GET("/day/:date", h.GetAllByDayEvents)
+				adverts.GET("/week/:date", h.GetAllByWeekEvents)
+				adverts.GET("/month/:date", h.GetAllByMonthEvents)
 			}
 		}
 	}

@@ -160,13 +160,70 @@ func (h *Handler) DeleteEvent(c *gin.Context) {
 }
 
 func (h *Handler) GetAllByDayEvents(c *gin.Context) {
-	return
+	date := c.Param("date")
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		h.newResponse(c, "get by day", http.StatusBadRequest, "error parsing date", err)
+		return
+	}
+
+	events, err := h.Services.GetAllByDayEvents(c, parsedDate)
+	if err != nil {
+		h.newResponse(c, "get by day", http.StatusBadRequest, "error getting events by day", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Total int            `json:"total"`
+		Data  []models.Event `json:"data"`
+	}{
+		Total: len(events),
+		Data:  events,
+	})
 }
 
 func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
-	return
+	date := c.Param("date")
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		h.newResponse(c, "get by week", http.StatusBadRequest, "error parsing date", err)
+		return
+	}
+
+	events, err := h.Services.GetAllByWeekEvents(c, parsedDate)
+	if err != nil {
+		h.newResponse(c, "get by week", http.StatusBadRequest, "error getting events by week", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Total int            `json:"total"`
+		Data  []models.Event `json:"data"`
+	}{
+		Total: len(events),
+		Data:  events,
+	})
 }
 
 func (h *Handler) GetAllByMonthEvents(c *gin.Context) {
-	return
+	date := c.Param("date")
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		h.newResponse(c, "get by month", http.StatusBadRequest, "error parsing date", err)
+		return
+	}
+
+	events, err := h.Services.GetAllByMonthEvents(c, parsedDate)
+	if err != nil {
+		h.newResponse(c, "get by month", http.StatusBadRequest, "error getting events by month", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, struct {
+		Total int            `json:"total"`
+		Data  []models.Event `json:"data"`
+	}{
+		Total: len(events),
+		Data:  events,
+	})
 }

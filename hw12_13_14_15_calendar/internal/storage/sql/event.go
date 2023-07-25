@@ -165,7 +165,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 	query := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
 
 	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
@@ -200,7 +200,7 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 	query := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
 
 	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {

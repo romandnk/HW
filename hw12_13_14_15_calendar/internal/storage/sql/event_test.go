@@ -261,7 +261,7 @@ func TestStorageGetAllByDayEventsEmpty(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	var expectedEvents []models.Event
 
@@ -292,7 +292,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	expectedEvents := []models.Event{
 		{
@@ -307,7 +307,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 		{
 			ID:                   "2",
 			Title:                "Event 2",
-			Date:                 date.AddDate(0, 0, 1),
+			Date:                 date.AddDate(0, 0, 6),
 			Duration:             2 * time.Hour,
 			Description:          "Description 2",
 			UserID:               2,
@@ -322,12 +322,12 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns).
 		AddRow("1", "Event 1", date, time.Hour, "Description 1", 1, time.Hour).
-		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour)
+		AddRow("2", "Event 2", date.AddDate(0, 0, 6), 2*time.Hour, "Description 2", 2, 2*time.Hour)
 
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
@@ -357,7 +357,7 @@ func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
@@ -373,7 +373,7 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	expectedEvents := []models.Event{
 		{
@@ -394,6 +394,15 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 			UserID:               2,
 			NotificationInterval: 2 * time.Hour,
 		},
+		{
+			ID:                   "3",
+			Title:                "Event 3",
+			Date:                 date.AddDate(0, 0, 29),
+			Duration:             3 * time.Hour,
+			Description:          "Description 3",
+			UserID:               3,
+			NotificationInterval: 3 * time.Hour,
+		},
 	}
 
 	ctx := context.Background()
@@ -403,17 +412,18 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns).
 		AddRow("1", "Event 1", date, time.Hour, "Description 1", 1, time.Hour).
-		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour)
+		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour).
+		AddRow("3", "Event 3", date.AddDate(0, 0, 29), 3*time.Hour, "Description 3", 3, 3*time.Hour)
 
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
-	require.Len(t, actualEvents, 2)
+	require.Len(t, actualEvents, 3)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
 	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
@@ -424,7 +434,7 @@ func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	var expectedEvents []models.Event
 
@@ -438,7 +448,7 @@ func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
 	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
