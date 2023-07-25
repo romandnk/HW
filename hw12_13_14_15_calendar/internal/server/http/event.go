@@ -143,7 +143,20 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 }
 
 func (h *Handler) DeleteEvent(c *gin.Context) {
-	return
+	id := c.Param("id")
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		h.newResponse(c, "delete", http.StatusBadRequest, "invalid id", err)
+		return
+	}
+
+	err = h.Services.DeleteEvent(c, parsedID.String())
+	if err != nil {
+		h.newResponse(c, "delete", http.StatusBadRequest, "error deleting event", err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (h *Handler) GetAllByDayEvents(c *gin.Context) {

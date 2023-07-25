@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
@@ -466,40 +467,6 @@ func TestHandlerUpdateEventError(t *testing.T) {
 				"notification_interval": "interval",
 			},
 		},
-		//{
-		//	name:            "invalid date",
-		//	expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
-		//	expectedMessage: "error parsing date",
-		//	requestBody: map[string]interface{}{
-		//		"title":    "test",
-		//		"date":     "date",
-		//		"duration": "1h30m",
-		//		"user_id":  1,
-		//	},
-		//},
-		//{
-		//	name:            "invalid duration",
-		//	expectedErr:     "time: unknown unit \"y\" in duration \"1y1h30m\"",
-		//	expectedMessage: "error parsing duration",
-		//	requestBody: map[string]interface{}{
-		//		"title":    "test",
-		//		"date":     "2023-07-22T12:00:00Z",
-		//		"duration": "1y1h30m",
-		//		"user_id":  1,
-		//	},
-		//},
-		//{
-		//	name:            "invalid notificationInterval",
-		//	expectedErr:     "time: invalid duration \"interval\"",
-		//	expectedMessage: "error parsing notificationInterval",
-		//	requestBody: map[string]interface{}{
-		//		"title":                 "test",
-		//		"date":                  "2023-07-22T12:00:00Z",
-		//		"duration":              "1h30m",
-		//		"user_id":               1,
-		//		"notification_interval": "interval",
-		//	},
-		//},
 	}
 
 	for _, tc := range testCases {
@@ -630,4 +597,93 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 			require.True(t, ok)
 		})
 	}
+}
+
+func TestHandlerDeleteEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	services := mock_service.NewMockServices(ctrl)
+	logger := mock_logger.NewMockLogger(ctrl)
+
+	id := uuid.New().String()
+
+	services.EXPECT().DeleteEvent(gomock.Any(), id).Return(nil)
+
+	handler := NewHandler(services, logger)
+
+	r := gin.Default()
+	r.DELETE(url+"/:id", handler.DeleteEvent)
+
+	w := httptest.NewRecorder()
+
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url+"/"+id, nil)
+	require.NoError(t, err)
+
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestHandlerDeleteEventError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	services := mock_service.NewMockServices(ctrl)
+	logger := mock_logger.NewMockLogger(ctrl)
+
+	id := "test id"
+
+	expectedMessage := "invalid id"
+	expectedError := "invalid UUID length: 7"
+
+	logger.EXPECT().Error(expectedMessage,
+		slog.String("action", "delete"),
+		slog.String("error", expectedError))
+
+	handler := NewHandler(services, logger)
+
+	r := gin.Default()
+	r.DELETE(url+"/:id", handler.DeleteEvent)
+
+	w := httptest.NewRecorder()
+
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url+"/"+id, nil)
+	require.NoError(t, err)
+
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	services := mock_service.NewMockServices(ctrl)
+	logger := mock_logger.NewMockLogger(ctrl)
+
+	id := uuid.New().String()
+
+	expectedMessage := "error deleting event"
+	expectedError := fmt.Errorf("no event with id %s", id)
+
+	services.EXPECT().DeleteEvent(gomock.Any(), id).Return(expectedError)
+	logger.EXPECT().Error(expectedMessage,
+		slog.String("action", "delete"),
+		slog.String("error", expectedError.Error()))
+
+	handler := NewHandler(services, logger)
+
+	r := gin.Default()
+	r.DELETE(url+"/:id", handler.DeleteEvent)
+
+	w := httptest.NewRecorder()
+
+	ctx := context.Background()
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url+"/"+id, nil)
+	require.NoError(t, err)
+
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }

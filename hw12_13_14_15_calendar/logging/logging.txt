@@ -34,3 +34,4 @@
 127.0.0.1:38626 25/Jul/2023:22:30:57 +0300 PATCH /api/v1/events/b2ec0696-9a3f-4ae7-be3d-dcf072bb3834 HTTP/1.1 200 1ms PostmanRuntime/7.32.3
 127.0.0.1:41598 25/Jul/2023:22:31:13 +0300 PATCH /api/v1/events/b2ec0696-9a3f-4ae7-be3d-dcf072bb3834 HTTP/1.1 500 1ms PostmanRuntime/7.32.3
 127.0.0.1:52790 25/Jul/2023:22:32:18 +0300 PATCH /api/v1/events/b2ec0696-9a3f-4ae7-be3d-dcf072bb3834 HTTP/1.1 200 2ms PostmanRuntime/7.32.3
+127.0.0.1:41160 26/Jul/2023:00:22:49 +0300 DELETE /api/v1/events/b2ec0696-9a3f-4ae7-be3d-dcf072bb3834 HTTP/1.1 200 2ms PostmanRuntime/7.32.3
