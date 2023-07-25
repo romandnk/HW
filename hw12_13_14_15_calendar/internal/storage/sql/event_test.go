@@ -3,14 +3,15 @@ package sqlstorage
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v2"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/stretchr/testify/require"
-	"regexp"
-	"testing"
-	"time"
 )
 
 func TestStorageCreateEvent(t *testing.T) {

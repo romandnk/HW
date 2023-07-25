@@ -5,20 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
-	"golang.org/x/exp/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	mock_service "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"golang.org/x/exp/slog"
 )
 
 const url = "/api/v1/events"
@@ -686,4 +686,228 @@ func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+//nolint:funlen
+func TestHandlerGetAllEvents(t *testing.T) {
+	dateStr := "2023-07-22T12:00:00Z"
+	date, err := time.Parse(time.RFC3339, dateStr)
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name           string
+		period         string
+		expectedEvents []models.Event
+	}{
+		{
+			name:   "get all by day",
+			period: "day",
+			expectedEvents: []models.Event{
+				{
+					ID:                   uuid.New().String(),
+					Title:                "1",
+					Date:                 date,
+					Duration:             time.Second,
+					Description:          "1",
+					UserID:               1,
+					NotificationInterval: time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "2",
+					Date:                 date,
+					Duration:             2 * time.Second,
+					Description:          "2",
+					UserID:               2,
+					NotificationInterval: 2 * time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "6",
+					Date:                 date,
+					Duration:             6 * time.Second,
+					Description:          "6",
+					UserID:               6,
+					NotificationInterval: 6 * time.Second,
+				},
+			},
+		},
+		{
+			name:   "get all by week",
+			period: "week",
+			expectedEvents: []models.Event{
+				{
+					ID:                   uuid.New().String(),
+					Title:                "1",
+					Date:                 date,
+					Duration:             time.Second,
+					Description:          "1",
+					UserID:               1,
+					NotificationInterval: time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "2",
+					Date:                 date.AddDate(0, 0, 2),
+					Duration:             2 * time.Second,
+					Description:          "2",
+					UserID:               2,
+					NotificationInterval: 2 * time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "6",
+					Date:                 date.AddDate(0, 0, 6),
+					Duration:             6 * time.Second,
+					Description:          "6",
+					UserID:               6,
+					NotificationInterval: 6 * time.Second,
+				},
+			},
+		},
+		{
+			name:   "get all by month",
+			period: "month",
+			expectedEvents: []models.Event{
+				{
+					ID:                   uuid.New().String(),
+					Title:                "1",
+					Date:                 date,
+					Duration:             time.Second,
+					Description:          "1",
+					UserID:               1,
+					NotificationInterval: time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "2",
+					Date:                 date.AddDate(0, 0, 15),
+					Duration:             2 * time.Second,
+					Description:          "2",
+					UserID:               2,
+					NotificationInterval: 2 * time.Second,
+				},
+				{
+					ID:                   uuid.New().String(),
+					Title:                "6",
+					Date:                 date.AddDate(0, 0, 29),
+					Duration:             6 * time.Second,
+					Description:          "6",
+					UserID:               6,
+					NotificationInterval: 6 * time.Second,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			services := mock_service.NewMockServices(ctrl)
+			logger := mock_logger.NewMockLogger(ctrl)
+
+			handler := NewHandler(services, logger)
+
+			r := gin.Default()
+
+			w := httptest.NewRecorder()
+
+			switch tc.period {
+			case "day":
+				services.EXPECT().GetAllByDayEvents(gomock.Any(), date).Return(tc.expectedEvents, nil)
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByDayEvents)
+			case "week":
+				services.EXPECT().GetAllByWeekEvents(gomock.Any(), date).Return(tc.expectedEvents, nil)
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByWeekEvents)
+			case "month":
+				services.EXPECT().GetAllByMonthEvents(gomock.Any(), date).Return(tc.expectedEvents, nil)
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByMonthEvents)
+			}
+
+			ctx := context.Background()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+"/"+tc.period+"/"+dateStr, nil)
+			require.NoError(t, err)
+
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusOK, w.Code)
+
+			responseBody := struct {
+				Total int
+				Data  []models.Event
+			}{}
+			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
+			require.NoError(t, err)
+
+			require.Equal(t, 3, responseBody.Total)
+			require.Equal(t, tc.expectedEvents, responseBody.Data)
+		})
+	}
+}
+
+func TestHandlerGetAllByDayEventsError(t *testing.T) {
+	date := "date"
+	expectedMessage := "error parsing date"
+	expectedError := "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\""
+
+	testCases := []struct {
+		name   string
+		period string
+		action string
+	}{
+		{
+			name:   "error parsing date by day",
+			period: "day",
+			action: "get by day",
+		},
+		{
+			name:   "error parsing date by week",
+			period: "week",
+			action: "get by week",
+		},
+		{
+			name:   "error parsing date by month",
+			period: "month",
+			action: "get by month",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			services := mock_service.NewMockServices(ctrl)
+			logger := mock_logger.NewMockLogger(ctrl)
+
+			logger.EXPECT().Error(expectedMessage,
+				slog.String("action", tc.action),
+				slog.String("error", expectedError))
+
+			handler := NewHandler(services, logger)
+
+			r := gin.Default()
+
+			w := httptest.NewRecorder()
+
+			switch tc.period {
+			case "day":
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByDayEvents)
+			case "week":
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByWeekEvents)
+			case "month":
+				r.GET(url+"/"+tc.period+"/:date", handler.GetAllByMonthEvents)
+			}
+
+			ctx := context.Background()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+"/"+tc.period+"/"+date, nil)
+			require.NoError(t, err)
+
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusBadRequest, w.Code)
+		})
+	}
 }

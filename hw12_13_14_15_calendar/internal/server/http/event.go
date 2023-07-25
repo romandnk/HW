@@ -1,11 +1,12 @@
 package internalhttp
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
-	"net/http"
-	"time"
 )
 
 type bodyEvent struct {

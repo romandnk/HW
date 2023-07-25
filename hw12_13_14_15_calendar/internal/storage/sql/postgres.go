@@ -3,6 +3,7 @@ package sqlstorage
 import (
 	"context"
 	"fmt"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,6 +18,10 @@ func NewPostgresDB(ctx context.Context, cfg DBConf) (PgxIface, error) {
 	)
 
 	config, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		return nil, err
+	}
+
 	config.MaxConns = int32(cfg.MaxConns)
 	config.MinConns = int32(cfg.MinConns)
 	config.MaxConnLifetime = cfg.MaxConnLifetime

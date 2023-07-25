@@ -2,9 +2,10 @@ package sqlstorage
 
 import (
 	"context"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"time"
 )
 
 const eventsTable = "events"
