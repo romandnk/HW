@@ -36,15 +36,14 @@ func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, 
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
-	var emptyEvent models.Event
 	if event.Duration < 0 {
-		return emptyEvent, ErrInvalidDuration
+		return models.Event{}, ErrInvalidDuration
 	}
 	if event.UserID < 0 {
-		return emptyEvent, ErrInvalidUserID
+		return models.Event{}, ErrInvalidUserID
 	}
 	if event.NotificationInterval < 0 {
-		return emptyEvent, ErrInvalidNotificationInterval
+		return models.Event{}, ErrInvalidNotificationInterval
 	}
 
 	return s.event.UpdateEvent(ctx, id, event)

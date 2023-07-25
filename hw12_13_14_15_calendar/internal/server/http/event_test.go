@@ -399,6 +399,154 @@ func TestHandlerUpdateEvent(t *testing.T) {
 func TestHandlerUpdateEventError(t *testing.T) {
 	testCases := []struct {
 		name            string
+		id              string
+		expectedErr     string
+		expectedMessage string
+		requestBody     map[string]interface{}
+	}{
+		{
+			name:            "incorrect id",
+			id:              "test id",
+			expectedErr:     "invalid UUID length: 7",
+			expectedMessage: "invalid id",
+		},
+		{
+			name:            "invalid request body",
+			id:              uuid.New().String(),
+			expectedErr:     "json: cannot unmarshal bool into Go struct field bodyEvent.title of type string",
+			expectedMessage: "error parsing request body",
+			requestBody: map[string]interface{}{
+				"title":                 true,
+				"date":                  "2023-07-22T12:00:00Z",
+				"duration":              "1h30m",
+				"description":           "This is a test event update",
+				"user_id":               1,
+				"notification_interval": "10m",
+			},
+		},
+		{
+			name:            "invalid date",
+			id:              uuid.New().String(),
+			expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
+			expectedMessage: "error parsing date",
+			requestBody: map[string]interface{}{
+				"title":                 "test title",
+				"date":                  "date",
+				"duration":              "1h30m",
+				"description":           "This is a test event update",
+				"user_id":               1,
+				"notification_interval": "10m",
+			},
+		},
+		{
+			name:            "invalid duration",
+			id:              uuid.New().String(),
+			expectedErr:     "time: invalid duration \"interval\"",
+			expectedMessage: "error parsing duration",
+			requestBody: map[string]interface{}{
+				"title":                 "test title",
+				"date":                  "2023-07-22T12:00:00Z",
+				"duration":              "duration",
+				"description":           "This is a test event update",
+				"user_id":               1,
+				"notification_interval": "10m",
+			},
+		},
+		{
+			name:            "invalid notification interval",
+			id:              uuid.New().String(),
+			expectedErr:     "time: invalid duration \"interval\"",
+			expectedMessage: "error parsing notification interval",
+			requestBody: map[string]interface{}{
+				"title":                 "test title",
+				"date":                  "2023-07-22T12:00:00Z",
+				"duration":              "1h30m",
+				"description":           "This is a test event update",
+				"user_id":               1,
+				"notification_interval": "interval",
+			},
+		},
+		//{
+		//	name:            "invalid date",
+		//	expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
+		//	expectedMessage: "error parsing date",
+		//	requestBody: map[string]interface{}{
+		//		"title":    "test",
+		//		"date":     "date",
+		//		"duration": "1h30m",
+		//		"user_id":  1,
+		//	},
+		//},
+		//{
+		//	name:            "invalid duration",
+		//	expectedErr:     "time: unknown unit \"y\" in duration \"1y1h30m\"",
+		//	expectedMessage: "error parsing duration",
+		//	requestBody: map[string]interface{}{
+		//		"title":    "test",
+		//		"date":     "2023-07-22T12:00:00Z",
+		//		"duration": "1y1h30m",
+		//		"user_id":  1,
+		//	},
+		//},
+		//{
+		//	name:            "invalid notificationInterval",
+		//	expectedErr:     "time: invalid duration \"interval\"",
+		//	expectedMessage: "error parsing notificationInterval",
+		//	requestBody: map[string]interface{}{
+		//		"title":                 "test",
+		//		"date":                  "2023-07-22T12:00:00Z",
+		//		"duration":              "1h30m",
+		//		"user_id":               1,
+		//		"notification_interval": "interval",
+		//	},
+		//},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+
+			services := mock_service.NewMockServices(ctrl)
+			logger := mock_logger.NewMockLogger(ctrl)
+
+			logger.EXPECT().Error(tc.expectedMessage,
+				slog.String("action", "update"),
+				slog.String("error", tc.expectedErr))
+
+			handler := NewHandler(services, logger)
+
+			r := gin.Default()
+			r.PATCH(url+"/:id", handler.UpdateEvent)
+
+			jsonBody, err := json.Marshal(tc.requestBody)
+			require.NoError(t, err)
+
+			w := httptest.NewRecorder()
+
+			ctx := context.Background()
+			req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url+"/"+tc.id, bytes.NewBuffer(jsonBody))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+
+			r.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusBadRequest, w.Code)
+
+			var responseBody map[string]interface{}
+			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
+			require.NoError(t, err)
+
+			message, ok := responseBody["message"]
+			require.Equal(t, tc.expectedMessage, message)
+			require.True(t, ok)
+		})
+	}
+}
+
+func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
+	testCases := []struct {
+		name            string
 		expectedErr     error
 		expectedMessage string
 		expectedEvent   models.Event

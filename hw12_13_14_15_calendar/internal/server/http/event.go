@@ -1,13 +1,11 @@
 package internalhttp
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"net/http"
 	"time"
-	"unicode/utf8"
-
-	"github.com/gin-gonic/gin"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
 type bodyEvent struct {
@@ -78,13 +76,9 @@ type Response struct {
 
 func (h *Handler) UpdateEvent(c *gin.Context) {
 	id := c.Param("id")
-	if utf8.RuneCountInString(id) != 36 {
-		h.newResponse(c, "update", http.StatusBadRequest, "invalid id", nil)
-		return
-	}
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		h.newResponse(c, "update", http.StatusBadRequest, "invalid kind of id", err)
+		h.newResponse(c, "update", http.StatusBadRequest, "invalid id", err)
 		return
 	}
 
