@@ -7,7 +7,7 @@ import (
 )
 
 type Handler struct {
-	*gin.Engine
+	engine   *gin.Engine
 	services service.Services
 	logger   logger.Logger
 }
@@ -23,7 +23,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(LoggerMiddleware(h.logger))
 	gin.SetMode(gin.ReleaseMode)
-	h.Engine = router
+	h.engine = router
 
 	api := router.Group("/api")
 	{
