@@ -16,8 +16,11 @@ max_conn_lifetime = "1h"
 max_conn_idle_time = "1m"
 
 
-[server]
+[server_http]
 host = "localhost"
 port = "8080"
 read_timeout = "10s"
 write_timeout = "10s"
+
+[server_grpc]
+port = "50051"

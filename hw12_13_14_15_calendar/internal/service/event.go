@@ -38,6 +38,12 @@ func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, 
 }
 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
+	if event.Title != "" {
+		event.Title = strings.TrimSpace(event.Title)
+		if event.Title == "" {
+			return models.Event{}, ErrEmptyTitle
+		}
+	}
 	if event.Duration < 0 {
 		return models.Event{}, ErrInvalidDuration
 	}

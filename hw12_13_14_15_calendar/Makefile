@@ -12,6 +12,9 @@ build:
 run: build
 	$(BIN) -config ./configs/calendar_config.toml
 
+generate:
+	protoc --proto_path=api --go_out=internal/server/grpc/event_pb  --go-grpc_out=internal/server/grpc/event_pb api/*.proto
+
 migrate:
 	CALENDAR_DB_USER=$(CALENDAR_DB_USER) CALENDAR_DB_PASSWORD=$(CALENDAR_DB_PASSWORD) migrate -path ./migrations -database 'postgres://$(CALENDAR_DB_USER):$(CALENDAR_DB_PASSWORD)@localhost:5432/calendar_db?sslmode=disable' up
 

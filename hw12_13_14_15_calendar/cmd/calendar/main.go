@@ -69,7 +69,7 @@ func main() {
 
 	handler := internalhttp.NewHandler(services, logg)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes())
+	server := internalhttp.NewServer(config.ServerHTTP, handler.InitRoutes())
 
 	go func() {
 		<-ctx.Done()
@@ -78,7 +78,7 @@ func main() {
 		defer cancel()
 
 		if err := server.Stop(ctx); err != nil {
-			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 			cancel()
 			os.Exit(1)
 		}
@@ -86,10 +86,10 @@ func main() {
 		logg.Info("calendar is stopped")
 	}()
 
-	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 
 	if err := server.Start(); err != nil {
-		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 		cancel()
 	}
 }

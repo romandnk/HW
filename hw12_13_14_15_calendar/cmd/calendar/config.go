@@ -43,9 +43,9 @@ var (
 )
 
 type Config struct {
-	Logger  LoggerConf
-	Server  internalhttp.ServerConf
-	Storage StorageConf
+	Logger     LoggerConf
+	ServerHTTP internalhttp.ServerHTTP
+	Storage    StorageConf
 }
 
 type LoggerConf struct {
@@ -79,11 +79,11 @@ func NewConfig(path string) (*Config, error) {
 		return &Config{}, err
 	}
 
-	server, err := newServerConf()
+	serverHTTP, err := newServerHTTPConf()
 	if err != nil {
 		return &Config{}, err
 	}
-	err = validateServer(server)
+	err = validateServer(serverHTTP)
 	if err != nil {
 		return &Config{}, err
 	}
@@ -98,9 +98,9 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	config := Config{
-		Logger:  logger,
-		Server:  server,
-		Storage: storage,
+		Logger:     logger,
+		ServerHTTP: serverHTTP,
+		Storage:    storage,
 	}
 
 	return &config, nil
@@ -115,23 +115,23 @@ func newLoggerConf() LoggerConf {
 	}
 }
 
-func newServerConf() (internalhttp.ServerConf, error) {
-	host := viper.GetString("server.host")
-	port := viper.GetString("server.port")
+func newServerHTTPConf() (internalhttp.ServerHTTP, error) {
+	host := viper.GetString("server_http.host")
+	port := viper.GetString("server_http.port")
 
-	readTimeoutStr := viper.GetString("server.read_timeout")
+	readTimeoutStr := viper.GetString("server_http.read_timeout")
 	readTimeout, err := time.ParseDuration(readTimeoutStr)
 	if err != nil {
-		return internalhttp.ServerConf{}, ErrParseServerReadTimeout
+		return internalhttp.ServerHTTP{}, ErrParseServerReadTimeout
 	}
 
-	writeTimeoutStr := viper.GetString("server.write_timeout")
+	writeTimeoutStr := viper.GetString("server_http.write_timeout")
 	writeTimeout, err := time.ParseDuration(writeTimeoutStr)
 	if err != nil {
-		return internalhttp.ServerConf{}, ErrParseServerWriteTimeout
+		return internalhttp.ServerHTTP{}, ErrParseServerWriteTimeout
 	}
 
-	return internalhttp.ServerConf{
+	return internalhttp.ServerHTTP{
 		Host:         host,
 		Port:         port,
 		ReadTimeout:  readTimeout,
@@ -202,7 +202,7 @@ func validateLogger(l LoggerConf) error {
 	return nil
 }
 
-func validateServer(s internalhttp.ServerConf) error {
+func validateServer(s internalhttp.ServerHTTP) error {
 	if s.Host == "" {
 		return ErrServerHost
 	}

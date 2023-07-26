@@ -552,6 +552,17 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 				"user_id": -1,
 			},
 		},
+		{
+			name:            "title contains only spaces",
+			expectedErr:     service.ErrEmptyTitle,
+			expectedMessage: "error updating event",
+			expectedEvent: models.Event{
+				Title: "                 ",
+			},
+			requestBody: map[string]interface{}{
+				"title": "                 ",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
