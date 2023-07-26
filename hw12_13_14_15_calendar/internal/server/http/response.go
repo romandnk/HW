@@ -12,7 +12,7 @@ type response struct {
 //nolint:unparam
 func (h *Handler) newResponse(c *gin.Context, action string, code int, message string, err error) {
 	if err != nil {
-		h.Logger.Error(message, slog.String("action", action), slog.String("error", err.Error()))
+		h.logger.Error(message, slog.String("action", action), slog.String("error", err.Error()))
 	}
 	c.AbortWithStatusJSON(code, response{Message: message})
 }

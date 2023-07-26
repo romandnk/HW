@@ -8,20 +8,20 @@ import (
 
 type Handler struct {
 	*gin.Engine
-	Services service.Services
-	Logger   logger.Logger
+	services service.Services
+	logger   logger.Logger
 }
 
 func NewHandler(services service.Services, logger logger.Logger) *Handler {
 	return &Handler{
-		Services: services,
-		Logger:   logger,
+		services: services,
+		logger:   logger,
 	}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
-	router.Use(LoggerMiddleware(h.Logger))
+	router.Use(LoggerMiddleware(h.logger))
 	gin.SetMode(gin.ReleaseMode)
 	h.Engine = router
 

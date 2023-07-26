@@ -29,24 +29,20 @@ func TestStorageCreateEvent(t *testing.T) {
 		NotificationInterval: time.Second,
 	}
 
-	columns := []string{"id"}
-	rows := pgxmock.NewRows(columns).AddRow(event.ID)
-
 	ctx := context.Background()
 
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) 
-		RETURNING id`, eventsTable)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(
 		event.ID,
 		event.Title,
 		event.Date,
 		event.Duration,
 		event.Description,
 		event.UserID,
-		event.NotificationInterval).WillReturnRows(rows)
+		event.NotificationInterval).WillReturnResult(pgxmock.NewResult("insert", 1))
 
 	storage := NewStorageSQL(mock)
 

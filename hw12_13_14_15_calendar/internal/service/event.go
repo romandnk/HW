@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,7 @@ var (
 )
 
 func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
+	event.Title = strings.TrimSpace(event.Title)
 	if event.Title == "" {
 		return "", ErrEmptyTitle
 	}

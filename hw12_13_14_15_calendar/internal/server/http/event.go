@@ -54,7 +54,7 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 	event.UserID = eventFromBody.UserID
 	event.NotificationInterval = notificationInterval
 
-	id, err := h.Services.CreateEvent(c, event)
+	id, err := h.services.CreateEvent(c, event)
 	if err != nil {
 		h.newResponse(c, "create", http.StatusBadRequest, "error creating event", err)
 		return
@@ -126,7 +126,7 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 		NotificationInterval: notificationInterval,
 	}
 
-	updatedEvent, err := h.Services.UpdateEvent(c, parsedID.String(), event)
+	updatedEvent, err := h.services.UpdateEvent(c, parsedID.String(), event)
 	if err != nil {
 		h.newResponse(c, "update", http.StatusBadRequest, "error updating event", err)
 		return
@@ -151,7 +151,7 @@ func (h *Handler) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	err = h.Services.DeleteEvent(c, parsedID.String())
+	err = h.services.DeleteEvent(c, parsedID.String())
 	if err != nil {
 		h.newResponse(c, "delete", http.StatusBadRequest, "error deleting event", err)
 		return
@@ -168,7 +168,7 @@ func (h *Handler) GetAllByDayEvents(c *gin.Context) {
 		return
 	}
 
-	events, err := h.Services.GetAllByDayEvents(c, parsedDate)
+	events, err := h.services.GetAllByDayEvents(c, parsedDate)
 	if err != nil {
 		h.newResponse(c, "get by day", http.StatusBadRequest, "error getting events by day", err)
 		return
@@ -191,7 +191,7 @@ func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
 		return
 	}
 
-	events, err := h.Services.GetAllByWeekEvents(c, parsedDate)
+	events, err := h.services.GetAllByWeekEvents(c, parsedDate)
 	if err != nil {
 		h.newResponse(c, "get by week", http.StatusBadRequest, "error getting events by week", err)
 		return
@@ -214,7 +214,7 @@ func (h *Handler) GetAllByMonthEvents(c *gin.Context) {
 		return
 	}
 
-	events, err := h.Services.GetAllByMonthEvents(c, parsedDate)
+	events, err := h.services.GetAllByMonthEvents(c, parsedDate)
 	if err != nil {
 		h.newResponse(c, "get by month", http.StatusBadRequest, "error getting events by month", err)
 		return

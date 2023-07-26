@@ -12,26 +12,27 @@ import (
 )
 
 func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
-	var id string
-
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id`, eventsTable)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, eventsTable)
 
-	err := s.db.QueryRow(ctx, query,
+	ct, err := s.db.Exec(ctx, query,
 		event.ID,
 		event.Title,
 		event.Date,
 		event.Duration,
 		event.Description,
 		event.UserID,
-		event.NotificationInterval).Scan(&id)
+		event.NotificationInterval)
 	if err != nil {
-		return id, err
+		return "", err
 	}
 
-	return id, nil
+	if ct.RowsAffected() != 1 {
+		return "", fmt.Errorf("no lines were inserted")
+	}
+
+	return event.ID, nil
 }
 
 type eventForUpdate struct {
