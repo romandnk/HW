@@ -834,20 +834,17 @@ func TestHandlerGetAllEvents(t *testing.T) {
 
 			require.Equal(t, http.StatusOK, w.Code)
 
-			responseBody := struct {
-				Total int
-				Data  []models.Event
-			}{}
+			var responseBody eventsResponse
 			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
 			require.NoError(t, err)
 
 			require.Equal(t, 3, responseBody.Total)
-			require.Equal(t, tc.expectedEvents, responseBody.Data)
+			require.Equal(t, formResponseGetBy(tc.expectedEvents).Data, responseBody.Data)
 		})
 	}
 }
 
-func TestHandlerGetAllByDayEventsError(t *testing.T) {
+func TestHandlerGetAllEventsError(t *testing.T) {
 	date := "date"
 	expectedMessage := "error parsing date"
 	expectedError := "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\""

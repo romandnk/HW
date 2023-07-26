@@ -160,6 +160,21 @@ func (h *Handler) DeleteEvent(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+type eventsResponse struct {
+	Total int            `json:"total"`
+	Data  []eventDetails `json:"data"`
+}
+
+type eventDetails struct {
+	ID                   string        `json:"id"`
+	Title                string        `json:"title"`
+	Date                 time.Time     `json:"date"`
+	Duration             time.Duration `json:"duration"`
+	Description          string        `json:"description"`
+	UserID               int           `json:"user_id"`
+	NotificationInterval time.Duration `json:"notification_interval"`
+}
+
 func (h *Handler) GetAllByDayEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
@@ -174,13 +189,7 @@ func (h *Handler) GetAllByDayEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, struct {
-		Total int            `json:"total"`
-		Data  []models.Event `json:"data"`
-	}{
-		Total: len(events),
-		Data:  events,
-	})
+	c.JSON(http.StatusOK, formResponseGetBy(events))
 }
 
 func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
@@ -197,13 +206,7 @@ func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, struct {
-		Total int            `json:"total"`
-		Data  []models.Event `json:"data"`
-	}{
-		Total: len(events),
-		Data:  events,
-	})
+	c.JSON(http.StatusOK, formResponseGetBy(events))
 }
 
 func (h *Handler) GetAllByMonthEvents(c *gin.Context) {
@@ -220,11 +223,22 @@ func (h *Handler) GetAllByMonthEvents(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, struct {
-		Total int            `json:"total"`
-		Data  []models.Event `json:"data"`
-	}{
-		Total: len(events),
-		Data:  events,
-	})
+	c.JSON(http.StatusOK, formResponseGetBy(events))
+}
+
+func formResponseGetBy(events []models.Event) eventsResponse {
+	var response eventsResponse
+	response.Total = len(events)
+	for _, event := range events {
+		response.Data = append(response.Data, eventDetails{
+			ID:                   event.ID,
+			Title:                event.Title,
+			Date:                 event.Date,
+			Duration:             event.Duration,
+			Description:          event.Description,
+			UserID:               event.UserID,
+			NotificationInterval: event.NotificationInterval,
+		})
+	}
+	return response
 }
