@@ -10,7 +10,7 @@ type response struct {
 }
 
 //nolint:unparam
-func (h *Handler) newResponse(c *gin.Context, action string, code int, message string, err error) {
+func (h *HandlerHTTP) newResponse(c *gin.Context, action string, code int, message string, err error) {
 	if err != nil {
 		h.logger.Error(message, slog.String("action", action), slog.String("error", err.Error()))
 	}

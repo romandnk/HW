@@ -6,20 +6,20 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 )
 
-type Handler struct {
+type HandlerHTTP struct {
 	engine   *gin.Engine
 	services service.Services
 	logger   logger.Logger
 }
 
-func NewHandler(services service.Services, logger logger.Logger) *Handler {
-	return &Handler{
+func NewHandlerHTTP(services service.Services, logger logger.Logger) *HandlerHTTP {
+	return &HandlerHTTP{
 		services: services,
 		logger:   logger,
 	}
 }
 
-func (h *Handler) InitRoutes() *gin.Engine {
+func (h *HandlerHTTP) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(LoggerMiddleware(h.logger))
 	gin.SetMode(gin.ReleaseMode)

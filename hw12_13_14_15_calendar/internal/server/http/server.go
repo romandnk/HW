@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-type ServerHTTP struct {
+type ServerHTTPConfig struct {
 	Host         string
 	Port         string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 }
 
-type Server struct {
+type ServerHTTP struct {
 	srv *http.Server
 }
 
-func NewServer(cfg ServerHTTP, handler http.Handler) *Server {
+func NewServerHTTP(cfg ServerHTTPConfig, handler http.Handler) *ServerHTTP {
 	srv := &http.Server{
 		Addr:           net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:        handler,
@@ -26,15 +26,15 @@ func NewServer(cfg ServerHTTP, handler http.Handler) *Server {
 		ReadTimeout:    cfg.ReadTimeout,
 		WriteTimeout:   cfg.WriteTimeout,
 	}
-	return &Server{
+	return &ServerHTTP{
 		srv: srv,
 	}
 }
 
-func (s *Server) Start() error {
+func (s *ServerHTTP) Start() error {
 	return s.srv.ListenAndServe()
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *ServerHTTP) Stop(ctx context.Context) error {
 	return s.srv.Shutdown(ctx)
 }

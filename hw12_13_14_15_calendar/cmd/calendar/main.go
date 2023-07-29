@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -67,9 +69,11 @@ func main() {
 
 	services := service.NewService(st)
 
-	handler := internalhttp.NewHandler(services, logg)
+	handlerHTTP := internalhttp.NewHandlerHTTP(services, logg)
+	handlerGRPC := grpc.NewHandlerGRPC(services, logg)
 
-	server := internalhttp.NewServer(config.ServerHTTP, handler.InitRoutes())
+	serverHTTP := internalhttp.NewServerHTTP(config.ServerHTTP, handlerHTTP.InitRoutes())
+	serverGRPC := grpc.NewServerGRPC(handlerGRPC, config.ServerGRPC)
 
 	go func() {
 		<-ctx.Done()
@@ -77,19 +81,42 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+		if err := serverHTTP.Stop(ctx); err != nil {
+			logg.Error("error stopping HTTPServer",
+				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 			cancel()
 			os.Exit(1)
 		}
 
+		serverGRPC.Stop()
+
 		logg.Info("calendar is stopped")
 	}()
 
-	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+	logg.Info("calendar is running...",
+		slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)),
+		slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
 
-	if err := server.Start(); err != nil {
-		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
-		cancel()
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if err := serverHTTP.Start(); err != nil {
+			logg.Error("error starting HTTPServer",
+				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+			cancel()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := serverGRPC.Start(config.ServerGRPC); err != nil {
+			logg.Error("error starting GRPCServer",
+				slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
+			cancel()
+		}
+	}()
+
+	wg.Wait()
 }

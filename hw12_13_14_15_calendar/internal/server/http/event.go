@@ -18,7 +18,7 @@ type bodyEvent struct {
 	NotificationInterval string `json:"notification_interval"`
 }
 
-func (h *Handler) CreateEvent(c *gin.Context) {
+func (h *HandlerHTTP) CreateEvent(c *gin.Context) {
 	var event models.Event
 	var eventFromBody bodyEvent
 
@@ -75,7 +75,7 @@ type Response struct {
 	NotificationInterval string `json:"notification_interval"`
 }
 
-func (h *Handler) UpdateEvent(c *gin.Context) {
+func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
@@ -143,7 +143,7 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 	})
 }
 
-func (h *Handler) DeleteEvent(c *gin.Context) {
+func (h *HandlerHTTP) DeleteEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
@@ -175,7 +175,7 @@ type eventDetails struct {
 	NotificationInterval time.Duration `json:"notification_interval"`
 }
 
-func (h *Handler) GetAllByDayEvents(c *gin.Context) {
+func (h *HandlerHTTP) GetAllByDayEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
@@ -192,7 +192,7 @@ func (h *Handler) GetAllByDayEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, formResponseGetBy(events))
 }
 
-func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
+func (h *HandlerHTTP) GetAllByWeekEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
@@ -209,7 +209,7 @@ func (h *Handler) GetAllByWeekEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, formResponseGetBy(events))
 }
 
-func (h *Handler) GetAllByMonthEvents(c *gin.Context) {
+func (h *HandlerHTTP) GetAllByMonthEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
