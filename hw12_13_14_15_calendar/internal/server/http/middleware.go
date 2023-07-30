@@ -11,10 +11,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const (
-	EmptyStatusCode = "empty"
-	logPath         = "./logging/logging.txt"
-)
+const logPath = "./logging/logging.txt"
 
 type RequestInfo struct {
 	ClientIP    string
@@ -26,7 +23,7 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
-func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
+func loggerMiddleware(log logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
@@ -36,7 +33,7 @@ func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
 
 		info := requestInformation(c.Request, duration)
 
-		log.Info("Request info",
+		log.Info("Request info HTTP",
 			slog.String("client ip", info.ClientIP),
 			slog.String("date", info.Date),
 			slog.String("method", info.Method),
@@ -47,7 +44,7 @@ func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
 			slog.String("user agent", info.UserAgent),
 		)
 
-		logInFileString := fmt.Sprintf("%s %s %s %s %s %d %s %s",
+		logInFileString := fmt.Sprintf("HTTP: %s %s %s %s %s %d %s %s",
 			info.ClientIP,
 			info.Date,
 			info.Method,

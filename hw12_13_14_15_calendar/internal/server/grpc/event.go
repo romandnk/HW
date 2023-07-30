@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc/codes"
@@ -10,9 +9,17 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func (h *HandlerGRPC) CreateEvent(ctx context.Context, event *event_pb.Event) (*event_pb.CreateEventResponse, error) {
-	fmt.Printf("%+v\n", toServiceEvent(event))
-	id, err := h.service.CreateEvent(ctx, toServiceEvent(event))
+func (h *HandlerGRPC) CreateEvent(ctx context.Context, req *event_pb.CreateEventRequest) (*event_pb.CreateEventResponse, error) {
+	event := models.Event{
+		Title:                req.GetTitle(),
+		Date:                 req.GetDate().AsTime(),
+		Duration:             req.GetDuration().AsDuration(),
+		Description:          req.GetDescription(),
+		UserID:               int(req.GetUserId()),
+		NotificationInterval: req.GetNotificationInterval().AsDuration(),
+	}
+
+	id, err := h.service.CreateEvent(ctx, event)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -39,16 +46,4 @@ func (h *HandlerGRPC) ListEventsByWeek(context.Context, *event_pb.ListEventsRequ
 
 func (h *HandlerGRPC) ListEventsByMonth(context.Context, *event_pb.ListEventsRequest) (*event_pb.ListEventsResponse, error) {
 	panic("")
-}
-
-func toServiceEvent(event *event_pb.Event) models.Event {
-	return models.Event{
-		ID:                   event.GetId(),
-		Title:                event.GetTitle(),
-		Date:                 event.GetDate().AsTime(),
-		Duration:             event.GetDuration().AsDuration(),
-		Description:          event.GetDescription(),
-		UserID:               int(event.GetUserId()),
-		NotificationInterval: event.GetNotificationInterval().AsDuration(),
-	}
 }

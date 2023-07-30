@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"net"
 	"time"
 
@@ -24,9 +25,10 @@ type ServerGRPC struct {
 	handler *HandlerGRPC
 }
 
-func NewServerGRPC(handler *HandlerGRPC, cfg ServerGRPCConfig) *ServerGRPC {
+func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig) *ServerGRPC {
 	serverOptions := []grpc.ServerOption{
 		grpc.Creds(insecure.NewCredentials()),
+		grpc.UnaryInterceptor(loggingInterceptor(log)),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle: cfg.MaxConnectionIdle,
 			MaxConnectionAge:  cfg.MaxConnectionAge,
