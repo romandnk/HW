@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc/codes"

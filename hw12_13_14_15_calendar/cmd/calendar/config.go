@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
-
 	"github.com/joho/godotenv" //nolint:depguard
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	dbconf "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/spf13/viper"

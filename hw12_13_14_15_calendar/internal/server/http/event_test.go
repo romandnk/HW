@@ -40,7 +40,7 @@ func TestHandlerCreateEvent(t *testing.T) {
 	expectedID := "test uuid"
 	services.EXPECT().CreateEvent(gomock.Any(), expectedEvent).Return(expectedID, nil)
 
-	handler := NewHandler(services, logger)
+	handler := NewHandlerHTTP(services, logger)
 
 	r := gin.Default()
 	r.POST(url, handler.CreateEvent)
@@ -141,7 +141,7 @@ func TestHandlerCreateEventError(t *testing.T) {
 
 			logger.EXPECT().Error(tc.expectedMessage, slog.String("action", "create"), slog.String("error", tc.expectedErr))
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 			r.POST(url, handler.CreateEvent)
@@ -299,7 +299,7 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 				slog.String("action", "create"),
 				slog.String("error", tc.expectedErr.Error()))
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 			r.POST(url, handler.CreateEvent)
@@ -351,7 +351,7 @@ func TestHandlerUpdateEvent(t *testing.T) {
 
 	services.EXPECT().UpdateEvent(gomock.Any(), id, event).Return(expectedEvent, nil)
 
-	handler := NewHandler(services, logger)
+	handler := NewHandlerHTTP(services, logger)
 
 	r := gin.Default()
 	r.PATCH(url+"/:id", handler.UpdateEvent)
@@ -481,7 +481,7 @@ func TestHandlerUpdateEventError(t *testing.T) {
 				slog.String("action", "update"),
 				slog.String("error", tc.expectedErr))
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 			r.PATCH(url+"/:id", handler.UpdateEvent)
@@ -580,7 +580,7 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 				slog.String("action", "update"),
 				slog.String("error", tc.expectedErr.Error()))
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 			r.PATCH(url+"/:id", handler.UpdateEvent)
@@ -620,7 +620,7 @@ func TestHandlerDeleteEvent(t *testing.T) {
 
 	services.EXPECT().DeleteEvent(gomock.Any(), id).Return(nil)
 
-	handler := NewHandler(services, logger)
+	handler := NewHandlerHTTP(services, logger)
 
 	r := gin.Default()
 	r.DELETE(url+"/:id", handler.DeleteEvent)
@@ -651,7 +651,7 @@ func TestHandlerDeleteEventError(t *testing.T) {
 		slog.String("action", "delete"),
 		slog.String("error", expectedError))
 
-	handler := NewHandler(services, logger)
+	handler := NewHandlerHTTP(services, logger)
 
 	r := gin.Default()
 	r.DELETE(url+"/:id", handler.DeleteEvent)
@@ -683,7 +683,7 @@ func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
 		slog.String("action", "delete"),
 		slog.String("error", expectedError.Error()))
 
-	handler := NewHandler(services, logger)
+	handler := NewHandlerHTTP(services, logger)
 
 	r := gin.Default()
 	r.DELETE(url+"/:id", handler.DeleteEvent)
@@ -819,7 +819,7 @@ func TestHandlerGetAllEvents(t *testing.T) {
 			services := mock_service.NewMockServices(ctrl)
 			logger := mock_logger.NewMockLogger(ctrl)
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 
@@ -894,7 +894,7 @@ func TestHandlerGetAllEventsError(t *testing.T) {
 				slog.String("action", tc.action),
 				slog.String("error", expectedError))
 
-			handler := NewHandler(services, logger)
+			handler := NewHandlerHTTP(services, logger)
 
 			r := gin.Default()
 

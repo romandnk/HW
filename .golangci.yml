@@ -5,6 +5,8 @@ run:
     - !bench
 
 linters-settings:
+  lll:
+    line-length: 130
   tagliatelle:
     case:
       use-field-name: true

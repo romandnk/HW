@@ -11,9 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
-
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
