@@ -44,7 +44,37 @@ func (h *HandlerGRPC) CreateEvent(ctx context.Context, req *event_pb.Event) (*ev
 }
 
 func (h *HandlerGRPC) UpdateEvent(ctx context.Context, req *event_pb.UpdateEventRequest) (*event_pb.Event, error) {
-	panic("")
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, ErrNeedID.Error())
+	}
+
+	ids := md.Get("id")
+	if len(ids) == 0 {
+		return nil, status.Error(codes.InvalidArgument, ErrEmptyID.Error())
+	}
+
+	id := ids[0]
+	parsedID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event := models.Event{
+		Title:                req.GetTitle(),
+		Date:                 req.GetDate().AsTime(),
+		Duration:             req.GetDuration().AsDuration(),
+		Description:          req.GetDescription(),
+		UserID:               int(req.GetUserId()),
+		NotificationInterval: req.GetNotificationInterval().AsDuration(),
+	}
+
+	updatedEvent, err := h.service.UpdateEvent(ctx, parsedID.String(), event)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return toPBEvent(updatedEvent), nil
 }
 
 func (h *HandlerGRPC) DeleteEvent(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
@@ -117,19 +147,22 @@ func (h *HandlerGRPC) ListEvents(ctx context.Context, _ *emptypb.Empty) (*event_
 
 	result := make([]*event_pb.Event, 0, len(events))
 	for _, event := range events {
-		pbEvent := &event_pb.Event{
-			Id:                   &event.ID,
-			Title:                event.Title,
-			Date:                 timestamppb.New(event.Date),
-			Duration:             durationpb.New(event.Duration),
-			Description:          event.Description,
-			UserId:               int64(event.UserID),
-			NotificationInterval: durationpb.New(event.NotificationInterval),
-		}
-		result = append(result, pbEvent)
+		result = append(result, toPBEvent(event))
 	}
 
 	return &event_pb.ListEventsResponse{
 		Events: result,
 	}, nil
+}
+
+func toPBEvent(event models.Event) *event_pb.Event {
+	return &event_pb.Event{
+		Id:                   &event.ID,
+		Title:                event.Title,
+		Date:                 timestamppb.New(event.Date),
+		Duration:             durationpb.New(event.Duration),
+		Description:          event.Description,
+		UserId:               int64(event.UserID),
+		NotificationInterval: durationpb.New(event.NotificationInterval),
+	}
 }

@@ -30,8 +30,12 @@ message CreateEventResponse {
 }
 
 message UpdateEventRequest {
-  string id = 1;
-  Event event = 2;
+  optional string title = 1;
+  optional google.protobuf.Timestamp date = 2;
+  optional google.protobuf.Duration duration = 3;
+  optional string description = 4;
+  optional int64 user_id = 5;
+  optional google.protobuf.Duration notification_interval = 6;
 }
 
 message DeleteEventRequest {
