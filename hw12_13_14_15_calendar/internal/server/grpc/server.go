@@ -1,12 +1,13 @@
 package grpc
 
 import (
+	"net"
+	"time"
+
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
-	"net"
-	"time"
 )
 
 type ServerGRPCConfig struct {
@@ -20,7 +21,7 @@ type ServerGRPCConfig struct {
 
 type ServerGRPC struct {
 	srv     *grpc.Server
-	handler HandlerGRPC
+	handler *HandlerGRPC
 }
 
 func NewServerGRPC(handler *HandlerGRPC, cfg ServerGRPCConfig) *ServerGRPC {
@@ -38,7 +39,7 @@ func NewServerGRPC(handler *HandlerGRPC, cfg ServerGRPCConfig) *ServerGRPC {
 
 	return &ServerGRPC{
 		srv:     srv,
-		handler: *handler,
+		handler: handler,
 	}
 }
 

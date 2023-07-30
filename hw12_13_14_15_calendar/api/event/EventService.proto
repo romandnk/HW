@@ -4,13 +4,14 @@ package event;
 option go_package = "./;event_pb";
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 
 service EventService {
-  rpc CreateEvent(CreateEventRequest) returns (Event);
+  rpc CreateEvent(Event) returns (CreateEventResponse);
   rpc UpdateEvent(UpdateEventRequest) returns (Event);
-  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+  rpc DeleteEvent(DeleteEventRequest) returns (google.protobuf.Empty);
   rpc ListEventsByDay(ListEventsRequest) returns (ListEventsResponse);
   rpc ListEventsByWeek(ListEventsRequest) returns (ListEventsResponse);
   rpc ListEventsByMonth(ListEventsRequest) returns (ListEventsResponse);
@@ -26,8 +27,8 @@ message Event {
   google.protobuf.Duration notification_interval = 7;
 }
 
-message CreateEventRequest {
-  Event event = 1;
+message CreateEventResponse {
+  string id = 1;
 }
 
 message UpdateEventRequest {
@@ -37,10 +38,6 @@ message UpdateEventRequest {
 
 message DeleteEventRequest {
   string id = 1;
-}
-
-message DeleteEventResponse {
-  bool success = 1;
 }
 
 message ListEventsRequest {

@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	"strconv"
 	"time"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 
 	"github.com/joho/godotenv" //nolint:depguard
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"

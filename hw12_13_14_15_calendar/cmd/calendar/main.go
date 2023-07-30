@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	"log"
 	"net"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
