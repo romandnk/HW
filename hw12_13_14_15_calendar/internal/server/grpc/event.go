@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
@@ -12,7 +14,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 var (
@@ -60,9 +61,14 @@ func (h *HandlerGRPC) UpdateEvent(ctx context.Context, req *event_pb.UpdateEvent
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	var date time.Time
+	if req.GetDate() != nil {
+		date = req.GetDate().AsTime()
+	}
+
 	event := models.Event{
 		Title:                req.GetTitle(),
-		Date:                 req.GetDate().AsTime(),
+		Date:                 date,
 		Duration:             req.GetDuration().AsDuration(),
 		Description:          req.GetDescription(),
 		UserID:               int(req.GetUserId()),
