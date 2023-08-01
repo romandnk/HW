@@ -2,6 +2,7 @@ package internalhttp
 
 import (
 	"errors"
+
 	"github.com/gin-gonic/gin"
 	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"golang.org/x/exp/slog"
@@ -11,7 +12,7 @@ type response struct {
 	Action  string `json:"action"`
 	Field   string `json:"field,omitempty"`
 	Message string `json:"message"`
-	Error   string `json:"errors"`
+	Error   string `json:"error"`
 }
 
 func newResponse(action, field, message string, err error) response {

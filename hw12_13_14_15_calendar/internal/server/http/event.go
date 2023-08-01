@@ -2,11 +2,11 @@ package internalhttp
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
@@ -24,7 +24,7 @@ var (
 	ErrParsingBody                 = errors.New("error parsing json body")
 	ErrParsingDuration             = errors.New("duration must be represented only in hours, minutes, seconds")
 	ErrParsingNotificationInterval = errors.New("notification_interval must be represented only in hours, minutes, seconds")
-	ErrInvalidId                   = errors.New("invalid id")
+	ErrInvalidID                   = errors.New("invalid id")
 )
 
 type bodyEvent struct {
@@ -103,7 +103,7 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		resp := newResponse(updateAction, "id (param)", ErrInvalidId.Error(), err)
+		resp := newResponse(updateAction, "id (param)", ErrInvalidID.Error(), err)
 		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
@@ -178,7 +178,7 @@ func (h *HandlerHTTP) DeleteEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		resp := newResponse(deleteAction, "id (param)", ErrInvalidId.Error(), err)
+		resp := newResponse(deleteAction, "id (param)", ErrInvalidID.Error(), err)
 		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}

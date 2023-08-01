@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
@@ -144,6 +144,7 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	return nil
 }
 
+//nolint:dupl
 func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
@@ -185,6 +186,7 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 	return events, nil
 }
 
+//nolint:dupl
 func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
@@ -226,6 +228,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 	return events, nil
 }
 
+//nolint:dupl
 func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 

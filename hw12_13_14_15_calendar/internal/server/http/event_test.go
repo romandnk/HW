@@ -5,16 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	mock_service "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -184,6 +184,7 @@ func TestHandlerCreateEventError(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 	testCases := []struct {
 		name             string
@@ -445,7 +446,7 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			expectedResponse: response{
 				Action:  updateAction,
 				Field:   "id (param)",
-				Message: ErrInvalidId.Error(),
+				Message: ErrInvalidID.Error(),
 				Error:   "invalid UUID length: 7",
 			},
 			id: "1234567",
