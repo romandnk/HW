@@ -55,7 +55,7 @@ func loggerMiddleware(log logger.Logger) gin.HandlerFunc {
 			info.UserAgent,
 		)
 		if err := log.WriteLogInFile(logPath, logInFileString); err != nil {
-			log.Error(fmt.Sprintf("error wriging log in file with path %s: %s", logPath, err.Error()))
+			log.Error(fmt.Sprintf("errors wriging log in file with path %s: %s", logPath, err.Error()))
 		}
 	}
 }

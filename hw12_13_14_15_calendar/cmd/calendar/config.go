@@ -30,8 +30,8 @@ var (
 	ErrDBMaxConns                             = errors.New("database max conns must be greater than 0")
 	ErrDBMinConns                             = errors.New("database min conns must be greater than 0")
 	ErrDBIncompatibleMaxAndMinConns           = errors.New("database max conns must be greater or equal to min conns")
-	ErrParseMaxConnLifetime                   = errors.New("database error parse MaxConnLifetime")
-	ErrParseMaxConnIdleTime                   = errors.New("database error parse MaxConnIdleTime")
+	ErrParseMaxConnLifetime                   = errors.New("database errors parse MaxConnLifetime")
+	ErrParseMaxConnIdleTime                   = errors.New("database errors parse MaxConnIdleTime")
 	ErrHTTPServerReadTimeoutNotPositive       = errors.New("serverHTTP read timeout must be greater than 0")
 	ErrHTTPServerWriteTimeoutNotPositive      = errors.New("serverHTTP write timeout must be greater than 0")
 	ErrDBMaxConnLifetimeNotPositive           = errors.New("database MaxConnLifetime must be greater than 0")
@@ -73,11 +73,11 @@ func NewConfig(path string) (*Config, error) {
 
 	err := viper.ReadInConfig() // read config file
 	if err != nil {
-		return &Config{}, fmt.Errorf("error reading config file: %w", err)
+		return &Config{}, fmt.Errorf("errors reading config file: %w", err)
 	}
 
 	if err := godotenv.Load("./configs/.env"); err != nil { // load .env into system
-		return &Config{}, fmt.Errorf("error loading .env: %w", err)
+		return &Config{}, fmt.Errorf("errors loading .env: %w", err)
 	}
 
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password

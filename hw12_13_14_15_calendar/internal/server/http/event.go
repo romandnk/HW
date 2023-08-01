@@ -1,12 +1,30 @@
 package internalhttp
 
 import (
+	"errors"
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
+)
+
+var (
+	createAction     = "create"
+	updateAction     = "update"
+	deleteAction     = "delete"
+	getByDayAction   = "get by day"
+	getByWeekAction  = "get by week"
+	getByMonthAction = "get by month"
+)
+
+var (
+	ErrParsingDate                 = errors.New("date must be in RFC3339 format")
+	ErrParsingBody                 = errors.New("error parsing json body")
+	ErrParsingDuration             = errors.New("duration must be represented only in hours, minutes, seconds")
+	ErrParsingNotificationInterval = errors.New("notification_interval must be represented only in hours, minutes, seconds")
+	ErrInvalidId                   = errors.New("invalid id")
 )
 
 type bodyEvent struct {
@@ -23,18 +41,21 @@ func (h *HandlerHTTP) CreateEvent(c *gin.Context) {
 	var eventFromBody bodyEvent
 
 	if err := c.ShouldBindJSON(&eventFromBody); err != nil {
-		h.newResponse(c, "create", http.StatusBadRequest, "error parsing request body", err)
+		resp := newResponse(createAction, "", ErrParsingBody.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	date, err := time.Parse(time.RFC3339, eventFromBody.Date)
 	if err != nil {
-		h.newResponse(c, "create", http.StatusBadRequest, "error parsing date", err)
+		resp := newResponse(createAction, "date", ErrParsingDate.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 	duration, err := time.ParseDuration(eventFromBody.Duration)
 	if err != nil {
-		h.newResponse(c, "create", http.StatusBadRequest, "error parsing duration", err)
+		resp := newResponse(createAction, "duration", ErrParsingDuration.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
@@ -42,7 +63,8 @@ func (h *HandlerHTTP) CreateEvent(c *gin.Context) {
 	if eventFromBody.NotificationInterval != "" {
 		notificationInterval, err = time.ParseDuration(eventFromBody.NotificationInterval)
 		if err != nil {
-			h.newResponse(c, "create", http.StatusBadRequest, "error parsing notificationInterval", err)
+			resp := newResponse(createAction, "notification_interval", ErrParsingNotificationInterval.Error(), err)
+			h.sentResponse(c, http.StatusBadRequest, resp)
 			return
 		}
 	}
@@ -56,7 +78,9 @@ func (h *HandlerHTTP) CreateEvent(c *gin.Context) {
 
 	id, err := h.services.CreateEvent(c, event)
 	if err != nil {
-		h.newResponse(c, "create", http.StatusBadRequest, "error creating event", err)
+		message := "error creating event"
+		resp := newResponse(createAction, "notification_interval", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 
@@ -79,14 +103,16 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		h.newResponse(c, "update", http.StatusBadRequest, "invalid id", err)
+		resp := newResponse(updateAction, "id (param)", ErrInvalidId.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	var eventFromBody bodyEvent
 
 	if err := c.ShouldBindJSON(&eventFromBody); err != nil {
-		h.newResponse(c, "update", http.StatusBadRequest, "error parsing request body", err)
+		resp := newResponse(updateAction, "", ErrParsingBody.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
@@ -94,7 +120,8 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	if eventFromBody.Date != "" {
 		date, err = time.Parse(time.RFC3339, eventFromBody.Date)
 		if err != nil {
-			h.newResponse(c, "update", http.StatusBadRequest, "error parsing date", err)
+			resp := newResponse(updateAction, "date", ErrParsingDate.Error(), err)
+			h.sentResponse(c, http.StatusBadRequest, resp)
 			return
 		}
 	}
@@ -103,7 +130,8 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	if eventFromBody.Duration != "" {
 		duration, err = time.ParseDuration(eventFromBody.Duration)
 		if err != nil {
-			h.newResponse(c, "update", http.StatusBadRequest, "error parsing duration", err)
+			resp := newResponse(updateAction, "duration", ErrParsingDuration.Error(), err)
+			h.sentResponse(c, http.StatusBadRequest, resp)
 			return
 		}
 	}
@@ -112,7 +140,8 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 	if eventFromBody.NotificationInterval != "" {
 		notificationInterval, err = time.ParseDuration(eventFromBody.NotificationInterval)
 		if err != nil {
-			h.newResponse(c, "update", http.StatusBadRequest, "error parsing notification interval", err)
+			resp := newResponse(updateAction, "notification_interval", ErrParsingNotificationInterval.Error(), err)
+			h.sentResponse(c, http.StatusBadRequest, resp)
 			return
 		}
 	}
@@ -128,7 +157,9 @@ func (h *HandlerHTTP) UpdateEvent(c *gin.Context) {
 
 	updatedEvent, err := h.services.UpdateEvent(c, parsedID.String(), event)
 	if err != nil {
-		h.newResponse(c, "update", http.StatusBadRequest, "error updating event", err)
+		message := "error updating event"
+		resp := newResponse(updateAction, "", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 
@@ -147,13 +178,16 @@ func (h *HandlerHTTP) DeleteEvent(c *gin.Context) {
 	id := c.Param("id")
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
-		h.newResponse(c, "delete", http.StatusBadRequest, "invalid id", err)
+		resp := newResponse(deleteAction, "id (param)", ErrInvalidId.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	err = h.services.DeleteEvent(c, parsedID.String())
 	if err != nil {
-		h.newResponse(c, "delete", http.StatusBadRequest, "error deleting event", err)
+		message := "error deleting event"
+		resp := newResponse(deleteAction, "", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 
@@ -179,13 +213,16 @@ func (h *HandlerHTTP) GetAllByDayEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
-		h.newResponse(c, "get by day", http.StatusBadRequest, "error parsing date", err)
+		resp := newResponse(getByDayAction, "date (param)", ErrParsingDate.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	events, err := h.services.GetAllByDayEvents(c, parsedDate)
 	if err != nil {
-		h.newResponse(c, "get by day", http.StatusBadRequest, "error getting events by day", err)
+		message := "error getting events by day"
+		resp := newResponse(getByDayAction, "", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 
@@ -196,13 +233,16 @@ func (h *HandlerHTTP) GetAllByWeekEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
-		h.newResponse(c, "get by week", http.StatusBadRequest, "error parsing date", err)
+		resp := newResponse(getByWeekAction, "date (param)", ErrParsingDate.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	events, err := h.services.GetAllByWeekEvents(c, parsedDate)
 	if err != nil {
-		h.newResponse(c, "get by week", http.StatusBadRequest, "error getting events by week", err)
+		message := "error getting events by week"
+		resp := newResponse(getByWeekAction, "", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 
@@ -213,13 +253,16 @@ func (h *HandlerHTTP) GetAllByMonthEvents(c *gin.Context) {
 	date := c.Param("date")
 	parsedDate, err := time.Parse(time.RFC3339, date)
 	if err != nil {
-		h.newResponse(c, "get by month", http.StatusBadRequest, "error parsing date", err)
+		resp := newResponse(getByMonthAction, "date (param)", ErrParsingDate.Error(), err)
+		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
 
 	events, err := h.services.GetAllByMonthEvents(c, parsedDate)
 	if err != nil {
-		h.newResponse(c, "get by month", http.StatusBadRequest, "error getting events by month", err)
+		message := "error getting events by month"
+		resp := newResponse(getByMonthAction, "", message, err)
+		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}
 

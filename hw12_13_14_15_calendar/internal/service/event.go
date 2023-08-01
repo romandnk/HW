@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"strings"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 var (
-	ErrInvalidUserID               = errors.New("user id must not be negative number")
+	ErrInvalidUserID               = errors.New("user id must be positive number")
 	ErrEmptyTitle                  = errors.New("title cannot be empty")
 	ErrInvalidDuration             = errors.New("duration cannot be non-positive")
 	ErrInvalidNotificationInterval = errors.New("notification interval cannot be negative")
@@ -20,16 +21,28 @@ var (
 func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	event.Title = strings.TrimSpace(event.Title)
 	if event.Title == "" {
-		return "", ErrEmptyTitle
+		return "", customerror.CustomError{
+			Field:   "title",
+			Message: ErrEmptyTitle.Error(),
+		}
 	}
 	if event.Duration <= 0 {
-		return "", ErrInvalidDuration
+		return "", customerror.CustomError{
+			Field:   "duration",
+			Message: ErrInvalidDuration.Error(),
+		}
 	}
 	if event.UserID <= 0 {
-		return "", ErrInvalidUserID
+		return "", customerror.CustomError{
+			Field:   "user_id",
+			Message: ErrInvalidUserID.Error(),
+		}
 	}
 	if event.NotificationInterval < 0 {
-		return "", ErrInvalidNotificationInterval
+		return "", customerror.CustomError{
+			Field:   "notification_interval",
+			Message: ErrInvalidNotificationInterval.Error(),
+		}
 	}
 
 	id := uuid.New().String()
@@ -40,18 +53,24 @@ func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, 
 func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	if event.Title != "" {
 		event.Title = strings.TrimSpace(event.Title)
-		if event.Title == "" {
-			return models.Event{}, ErrEmptyTitle
-		}
 	}
 	if event.Duration < 0 {
-		return models.Event{}, ErrInvalidDuration
+		return models.Event{}, customerror.CustomError{
+			Field:   "duration",
+			Message: ErrInvalidDuration.Error(),
+		}
 	}
 	if event.UserID < 0 {
-		return models.Event{}, ErrInvalidUserID
+		return models.Event{}, customerror.CustomError{
+			Field:   "user_id",
+			Message: ErrInvalidUserID.Error(),
+		}
 	}
 	if event.NotificationInterval < 0 {
-		return models.Event{}, ErrInvalidNotificationInterval
+		return models.Event{}, customerror.CustomError{
+			Field:   "notification_interval",
+			Message: ErrInvalidNotificationInterval.Error(),
+		}
 	}
 
 	return s.event.UpdateEvent(ctx, id, event)

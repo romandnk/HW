@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"net"
-	"os"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -37,7 +36,7 @@ func main() {
 
 	config, err := NewConfig(configFile)
 	if err != nil {
-		log.Fatalf("config error: %s", err.Error())
+		log.Fatalf("config errors: %s", err.Error())
 	}
 
 	logg := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
@@ -57,10 +56,10 @@ func main() {
 	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
 		if err != nil {
-			logg.Error("error connecting db",
-				slog.String("error", err.Error()),
+			logg.Error("errors connecting db",
+				slog.String("errors", err.Error()),
 				slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
-			os.Exit(1) //nolint:gocritic
+			cancel()
 		}
 		defer db.Close()
 
@@ -82,10 +81,9 @@ func main() {
 		defer cancel()
 
 		if err := serverHTTP.Stop(ctx); err != nil {
-			logg.Error("error stopping HTTPServer",
+			logg.Error("errors stopping HTTPServer",
 				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 			cancel()
-			os.Exit(1)
 		}
 
 		serverGRPC.Stop()
@@ -103,7 +101,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := serverHTTP.Start(); err != nil {
-			logg.Error("error starting HTTPServer",
+			logg.Error("errors starting HTTPServer",
 				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 			cancel()
 		}
@@ -112,7 +110,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := serverGRPC.Start(config.ServerGRPC); err != nil {
-			logg.Error("error starting GRPCServer",
+			logg.Error("errors starting GRPCServer",
 				slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
 			cancel()
 		}

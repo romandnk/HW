@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -25,11 +26,17 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 		event.UserID,
 		event.NotificationInterval)
 	if err != nil {
-		return "", err
+		return "", customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	if ct.RowsAffected() != 1 {
-		return "", fmt.Errorf("no lines were inserted")
+		return "", customerror.CustomError{
+			Field:   "",
+			Message: "no lines were inserted",
+		}
 	}
 
 	return event.ID, nil
@@ -71,9 +78,15 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 		&updatedEvent.Description, &updatedEvent.UserID, &updatedEvent.NotificationInterval)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return updatedEvent, fmt.Errorf("no event with id %s", id)
+			return updatedEvent, customerror.CustomError{
+				Field:   "id",
+				Message: "no event with id " + id,
+			}
 		}
-		return updatedEvent, err
+		return updatedEvent, customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	return updatedEvent, nil
@@ -113,13 +126,19 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 
 	result, err := s.db.Exec(ctx, query, id)
 	if err != nil {
-		return err
+		return customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	rows := result.RowsAffected()
 
 	if rows == 0 {
-		return fmt.Errorf("no event with id %s", id)
+		return customerror.CustomError{
+			Field:   "id",
+			Message: "no event with id " + id,
+		}
 	}
 
 	return nil
@@ -135,7 +154,10 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 
 	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
-		return nil, err
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	for rows.Next() {
@@ -151,7 +173,10 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, err
+			return nil, customerror.CustomError{
+				Field:   "",
+				Message: err.Error(),
+			}
 		}
 
 		events = append(events, event)
@@ -170,7 +195,10 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 
 	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
-		return nil, err
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	for rows.Next() {
@@ -186,7 +214,10 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, err
+			return nil, customerror.CustomError{
+				Field:   "",
+				Message: err.Error(),
+			}
 		}
 
 		events = append(events, event)
@@ -205,7 +236,10 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 
 	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
-		return nil, err
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
 	}
 
 	for rows.Next() {
@@ -221,7 +255,10 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 			&event.NotificationInterval,
 		)
 		if err != nil {
-			return nil, err
+			return nil, customerror.CustomError{
+				Field:   "",
+				Message: err.Error(),
+			}
 		}
 
 		events = append(events, event)

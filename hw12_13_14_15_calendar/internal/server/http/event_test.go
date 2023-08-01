@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
+	"github.com/google/uuid"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	mock_service "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -79,15 +79,17 @@ func TestHandlerCreateEvent(t *testing.T) {
 
 func TestHandlerCreateEventError(t *testing.T) {
 	testCases := []struct {
-		name            string
-		expectedErr     string
-		expectedMessage string
-		requestBody     map[string]interface{}
+		name             string
+		expectedResponse response
+		requestBody      map[string]interface{}
 	}{
 		{
-			name:            "title is bool",
-			expectedErr:     "json: cannot unmarshal bool into Go struct field bodyEvent.title of type string",
-			expectedMessage: "error parsing request body",
+			name: "title is bool",
+			expectedResponse: response{
+				Action:  createAction,
+				Message: ErrParsingBody.Error(),
+				Error:   "json: cannot unmarshal bool into Go struct field bodyEvent.title of type string",
+			},
 			requestBody: map[string]interface{}{
 				"title":    true,
 				"date":     "2023-07-22T12:00:00Z",
@@ -96,9 +98,12 @@ func TestHandlerCreateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid date",
-			expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
-			expectedMessage: "error parsing date",
+			name: "invalid date",
+			expectedResponse: response{
+				Action:  createAction,
+				Message: ErrParsingDate.Error(),
+				Error:   "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
+			},
 			requestBody: map[string]interface{}{
 				"title":    "test",
 				"date":     "date",
@@ -107,9 +112,12 @@ func TestHandlerCreateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid duration",
-			expectedErr:     "time: unknown unit \"y\" in duration \"1y1h30m\"",
-			expectedMessage: "error parsing duration",
+			name: "invalid duration",
+			expectedResponse: response{
+				Action:  createAction,
+				Message: ErrParsingDuration.Error(),
+				Error:   "time: unknown unit \"y\" in duration \"1y1h30m\"",
+			},
 			requestBody: map[string]interface{}{
 				"title":    "test",
 				"date":     "2023-07-22T12:00:00Z",
@@ -118,9 +126,12 @@ func TestHandlerCreateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid notificationInterval",
-			expectedErr:     "time: invalid duration \"interval\"",
-			expectedMessage: "error parsing notificationInterval",
+			name: "invalid notification_interval",
+			expectedResponse: response{
+				Action:  createAction,
+				Message: ErrParsingNotificationInterval.Error(),
+				Error:   "time: invalid duration \"interval\"",
+			},
 			requestBody: map[string]interface{}{
 				"title":                 "test",
 				"date":                  "2023-07-22T12:00:00Z",
@@ -139,7 +150,9 @@ func TestHandlerCreateEventError(t *testing.T) {
 			services := mock_service.NewMockServices(ctrl)
 			logger := mock_logger.NewMockLogger(ctrl)
 
-			logger.EXPECT().Error(tc.expectedMessage, slog.String("action", "create"), slog.String("error", tc.expectedErr))
+			logger.EXPECT().Error(tc.expectedResponse.Message,
+				slog.String("action", "create"),
+				slog.String("errors", tc.expectedResponse.Error))
 
 			handler := NewHandlerHTTP(services, logger)
 
@@ -165,25 +178,27 @@ func TestHandlerCreateEventError(t *testing.T) {
 			require.NoError(t, err)
 
 			message, ok := responseBody["message"]
-			require.Equal(t, tc.expectedMessage, message)
+			require.Equal(t, tc.expectedResponse.Message, message)
 			require.True(t, ok)
 		})
 	}
 }
 
-//nolint:funlen
 func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 	testCases := []struct {
-		name            string
-		expectedErr     error
-		expectedMessage string
-		expectedEvent   models.Event
-		requestBody     map[string]interface{}
+		name             string
+		expectedResponse response
+		expectedEvent    models.Event
+		requestBody      map[string]interface{}
 	}{
 		{
-			name:            "title is empty",
-			expectedErr:     service.ErrEmptyTitle,
-			expectedMessage: "error creating event",
+			name: "title is empty",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "title",
+				Message: "error creating event",
+				Error:   "title cannot be empty",
+			},
 			expectedEvent: models.Event{
 				Title:    "",
 				Date:     time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -198,9 +213,13 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "user id is 0",
-			expectedErr:     service.ErrInvalidUserID,
-			expectedMessage: "error creating event",
+			name: "user id is 0",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "user_id",
+				Message: "error creating event",
+				Error:   "user id must not be positive number",
+			},
 			expectedEvent: models.Event{
 				Title:    "test",
 				Date:     time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -215,9 +234,13 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "user id is -1",
-			expectedErr:     service.ErrInvalidUserID,
-			expectedMessage: "error creating event",
+			name: "user id is -1",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "user_id",
+				Message: "error creating event",
+				Error:   "user id must not be positive number",
+			},
 			expectedEvent: models.Event{
 				Title:    "test",
 				Date:     time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -232,9 +255,13 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "duration is 0",
-			expectedErr:     service.ErrInvalidDuration,
-			expectedMessage: "error creating event",
+			name: "duration is 0",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "duration",
+				Message: "error creating event",
+				Error:   "duration cannot be non-positive",
+			},
 			expectedEvent: models.Event{
 				Title:    "test",
 				Date:     time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -249,9 +276,13 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "duration is -1 hour",
-			expectedErr:     service.ErrInvalidDuration,
-			expectedMessage: "error creating event",
+			name: "duration is -1 hour",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "duration",
+				Message: "error creating event",
+				Error:   "duration cannot be non-positive",
+			},
 			expectedEvent: models.Event{
 				Title:    "test",
 				Date:     time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -266,9 +297,13 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "notification interval is -1 hour",
-			expectedErr:     service.ErrInvalidDuration,
-			expectedMessage: "error creating event",
+			name: "notification interval is -1 hour",
+			expectedResponse: response{
+				Action:  createAction,
+				Field:   "notification_interval",
+				Message: "error creating event",
+				Error:   "notification interval cannot be negative",
+			},
 			expectedEvent: models.Event{
 				Title:                "test",
 				Date:                 time.Date(2023, 7, 22, 12, 0, 0, 0, time.UTC),
@@ -294,10 +329,10 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 			services := mock_service.NewMockServices(ctrl)
 			logger := mock_logger.NewMockLogger(ctrl)
 
-			services.EXPECT().CreateEvent(gomock.Any(), tc.expectedEvent).Return("", tc.expectedErr)
-			logger.EXPECT().Error(tc.expectedMessage,
-				slog.String("action", "create"),
-				slog.String("error", tc.expectedErr.Error()))
+			services.EXPECT().CreateEvent(gomock.Any(), tc.expectedEvent).Return("", errors.New(tc.expectedResponse.Error))
+			logger.EXPECT().Error(tc.expectedResponse.Message,
+				slog.String("action", tc.expectedResponse.Action),
+				slog.String("errors", tc.expectedResponse.Error))
 
 			handler := NewHandlerHTTP(services, logger)
 
@@ -316,14 +351,14 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			require.Equal(t, http.StatusBadRequest, w.Code)
+			require.Equal(t, http.StatusInternalServerError, w.Code)
 
 			var responseBody map[string]interface{}
 			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
 			require.NoError(t, err)
 
 			message, ok := responseBody["message"]
-			require.Equal(t, tc.expectedMessage, message)
+			require.Equal(t, tc.expectedResponse.Message, message)
 			require.True(t, ok)
 		})
 	}
@@ -399,23 +434,31 @@ func TestHandlerUpdateEvent(t *testing.T) {
 
 func TestHandlerUpdateEventError(t *testing.T) {
 	testCases := []struct {
-		name            string
-		id              string
-		expectedErr     string
-		expectedMessage string
-		requestBody     map[string]interface{}
+		name             string
+		expectedResponse response
+		expectedEvent    models.Event
+		id               string
+		requestBody      map[string]interface{}
 	}{
 		{
-			name:            "incorrect id",
-			id:              "test id",
-			expectedErr:     "invalid UUID length: 7",
-			expectedMessage: "invalid id",
+			name: "incorrect id",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "id (param)",
+				Message: ErrInvalidId.Error(),
+				Error:   "invalid UUID length: 7",
+			},
+			id: "1234567",
 		},
 		{
-			name:            "invalid request body",
-			id:              uuid.New().String(),
-			expectedErr:     "json: cannot unmarshal bool into Go struct field bodyEvent.title of type string",
-			expectedMessage: "error parsing request body",
+			name: "invalid request body",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "",
+				Message: ErrParsingBody.Error(),
+				Error:   "json: cannot unmarshal bool into Go struct field bodyEvent.title of type string",
+			},
+			id: uuid.New().String(),
 			requestBody: map[string]interface{}{
 				"title":                 true,
 				"date":                  "2023-07-22T12:00:00Z",
@@ -426,10 +469,14 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid date",
-			id:              uuid.New().String(),
-			expectedErr:     "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
-			expectedMessage: "error parsing date",
+			name: "invalid date",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "date",
+				Message: ErrParsingDate.Error(),
+				Error:   "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\"",
+			},
+			id: uuid.New().String(),
 			requestBody: map[string]interface{}{
 				"title":                 "test title",
 				"date":                  "date",
@@ -440,10 +487,14 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid duration",
-			id:              uuid.New().String(),
-			expectedErr:     "time: invalid duration \"interval\"",
-			expectedMessage: "error parsing duration",
+			name: "invalid duration",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "duration",
+				Message: ErrParsingDuration.Error(),
+				Error:   "time: invalid duration \"interval\"",
+			},
+			id: uuid.New().String(),
 			requestBody: map[string]interface{}{
 				"title":                 "test title",
 				"date":                  "2023-07-22T12:00:00Z",
@@ -454,10 +505,14 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			},
 		},
 		{
-			name:            "invalid notification interval",
-			id:              uuid.New().String(),
-			expectedErr:     "time: invalid duration \"interval\"",
-			expectedMessage: "error parsing notification interval",
+			name: "invalid notification interval",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "notification_interval",
+				Message: ErrParsingNotificationInterval.Error(),
+				Error:   "time: invalid duration \"interval\"",
+			},
+			id: uuid.New().String(),
 			requestBody: map[string]interface{}{
 				"title":                 "test title",
 				"date":                  "2023-07-22T12:00:00Z",
@@ -477,9 +532,9 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			services := mock_service.NewMockServices(ctrl)
 			logger := mock_logger.NewMockLogger(ctrl)
 
-			logger.EXPECT().Error(tc.expectedMessage,
+			logger.EXPECT().Error(tc.expectedResponse.Message,
 				slog.String("action", "update"),
-				slog.String("error", tc.expectedErr))
+				slog.String("errors", tc.expectedResponse.Error))
 
 			handler := NewHandlerHTTP(services, logger)
 
@@ -505,7 +560,7 @@ func TestHandlerUpdateEventError(t *testing.T) {
 			require.NoError(t, err)
 
 			message, ok := responseBody["message"]
-			require.Equal(t, tc.expectedMessage, message)
+			require.Equal(t, tc.expectedResponse.Message, message)
 			require.True(t, ok)
 		})
 	}
@@ -513,16 +568,19 @@ func TestHandlerUpdateEventError(t *testing.T) {
 
 func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 	testCases := []struct {
-		name            string
-		expectedErr     error
-		expectedMessage string
-		expectedEvent   models.Event
-		requestBody     map[string]interface{}
+		name             string
+		expectedResponse response
+		expectedEvent    models.Event
+		requestBody      map[string]interface{}
 	}{
 		{
-			name:            "duration is -1 hour",
-			expectedErr:     service.ErrInvalidDuration,
-			expectedMessage: "error updating event",
+			name: "duration is -1 hour",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "duration",
+				Message: "error updating event",
+				Error:   service.ErrInvalidDuration.Error(),
+			},
 			expectedEvent: models.Event{
 				Duration: -1 * time.Hour,
 			},
@@ -531,9 +589,13 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "notification interval is -1 hour",
-			expectedErr:     service.ErrInvalidDuration,
-			expectedMessage: "error updating event",
+			name: "notification interval is -1 hour",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "notification_interval",
+				Message: "error updating event",
+				Error:   service.ErrInvalidDuration.Error(),
+			},
 			expectedEvent: models.Event{
 				NotificationInterval: -time.Hour,
 			},
@@ -542,9 +604,13 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "user id is -1",
-			expectedErr:     service.ErrInvalidUserID,
-			expectedMessage: "error updating event",
+			name: "user id is -1",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "notification_interval",
+				Message: "error updating event",
+				Error:   service.ErrInvalidUserID.Error(),
+			},
 			expectedEvent: models.Event{
 				UserID: -1,
 			},
@@ -553,9 +619,13 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 			},
 		},
 		{
-			name:            "title contains only spaces",
-			expectedErr:     service.ErrEmptyTitle,
-			expectedMessage: "error updating event",
+			name: "title contains only spaces",
+			expectedResponse: response{
+				Action:  updateAction,
+				Field:   "notification_interval",
+				Message: "error updating event",
+				Error:   service.ErrEmptyTitle.Error(),
+			},
 			expectedEvent: models.Event{
 				Title: "                 ",
 			},
@@ -575,10 +645,11 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 
 			id := uuid.New().String()
 
-			services.EXPECT().UpdateEvent(gomock.Any(), id, tc.expectedEvent).Return(models.Event{}, tc.expectedErr)
-			logger.EXPECT().Error(tc.expectedMessage,
+			services.EXPECT().UpdateEvent(gomock.Any(), id, tc.expectedEvent).
+				Return(models.Event{}, errors.New(tc.expectedResponse.Error))
+			logger.EXPECT().Error(tc.expectedResponse.Message,
 				slog.String("action", "update"),
-				slog.String("error", tc.expectedErr.Error()))
+				slog.String("errors", tc.expectedResponse.Error))
 
 			handler := NewHandlerHTTP(services, logger)
 
@@ -597,14 +668,14 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 
 			r.ServeHTTP(w, req)
 
-			require.Equal(t, http.StatusBadRequest, w.Code)
+			require.Equal(t, http.StatusInternalServerError, w.Code)
 
 			var responseBody map[string]interface{}
 			err = json.Unmarshal(w.Body.Bytes(), &responseBody)
 			require.NoError(t, err)
 
 			message, ok := responseBody["message"]
-			require.Equal(t, tc.expectedMessage, message)
+			require.Equal(t, tc.expectedResponse.Message, message)
 			require.True(t, ok)
 		})
 	}
@@ -649,7 +720,7 @@ func TestHandlerDeleteEventError(t *testing.T) {
 
 	logger.EXPECT().Error(expectedMessage,
 		slog.String("action", "delete"),
-		slog.String("error", expectedError))
+		slog.String("errors", expectedError))
 
 	handler := NewHandlerHTTP(services, logger)
 
@@ -675,13 +746,17 @@ func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
 
 	id := uuid.New().String()
 
-	expectedMessage := "error deleting event"
-	expectedError := fmt.Errorf("no event with id %s", id)
+	expectedResponse := response{
+		Action:  deleteAction,
+		Field:   "id (param)",
+		Message: "error deleting event",
+		Error:   "no event with id" + id,
+	}
 
-	services.EXPECT().DeleteEvent(gomock.Any(), id).Return(expectedError)
-	logger.EXPECT().Error(expectedMessage,
+	services.EXPECT().DeleteEvent(gomock.Any(), id).Return(errors.New(expectedResponse.Error))
+	logger.EXPECT().Error(expectedResponse.Message,
 		slog.String("action", "delete"),
-		slog.String("error", expectedError.Error()))
+		slog.String("errors", expectedResponse.Error))
 
 	handler := NewHandlerHTTP(services, logger)
 
@@ -696,10 +771,9 @@ func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
-//nolint:funlen
 func TestHandlerGetAllEvents(t *testing.T) {
 	dateStr := "2023-07-22T12:00:00Z"
 	date, err := time.Parse(time.RFC3339, dateStr)
@@ -857,7 +931,7 @@ func TestHandlerGetAllEvents(t *testing.T) {
 
 func TestHandlerGetAllEventsError(t *testing.T) {
 	date := "date"
-	expectedMessage := "error parsing date"
+	expectedMessage := "date must be in RFC3339 format"
 	expectedError := "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\""
 
 	testCases := []struct {
@@ -892,7 +966,7 @@ func TestHandlerGetAllEventsError(t *testing.T) {
 
 			logger.EXPECT().Error(expectedMessage,
 				slog.String("action", tc.action),
-				slog.String("error", expectedError))
+				slog.String("errors", expectedError))
 
 			handler := NewHandlerHTTP(services, logger)
 

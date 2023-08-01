@@ -29,12 +29,12 @@ func loggingInterceptor(log logger.Logger) func(ctx context.Context, req interfa
 		log.Info("Request info GRPC",
 			slog.String("method", info.FullMethod),
 			slog.String("processing time", duration.String()),
-			slog.String("error", logErr.Error()),
+			slog.String("errors", logErr.Error()),
 		)
 
 		logInFileString := fmt.Sprintf("GRPC: %s %s %s", info.FullMethod, duration, logErr.Error())
 		if err := log.WriteLogInFile(logPath, logInFileString); err != nil {
-			log.Error(fmt.Sprintf("error wriging log in file with path %s: %s", logPath, err.Error()))
+			log.Error(fmt.Sprintf("errors wriging log in file with path %s: %s", logPath, err.Error()))
 		}
 
 		return resp, err
