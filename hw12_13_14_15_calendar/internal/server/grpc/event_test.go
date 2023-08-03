@@ -3,6 +3,11 @@ package grpc
 import (
 	"context"
 	"errors"
+	"log"
+	"net"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	mock_logger "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger/mock"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
@@ -15,10 +20,6 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"log"
-	"net"
-	"testing"
-	"time"
 )
 
 func startGRPCServer() (*grpc.Server, *bufconn.Listener) {
