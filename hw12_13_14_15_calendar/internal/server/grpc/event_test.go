@@ -40,16 +40,6 @@ func getDialer(lis *bufconn.Listener) func(context.Context, string) (net.Conn, e
 	}
 }
 
-func getHandler(ctrl *gomock.Controller) HandlerGRPC {
-	services := mock_service.NewMockServices(ctrl)
-	logger := mock_logger.NewMockLogger(ctrl)
-	handler := HandlerGRPC{
-		service: services,
-		logger:  logger,
-	}
-	return handler
-}
-
 func TestHandlerGRPCCreateEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -58,7 +48,12 @@ func TestHandlerGRPCCreateEvent(t *testing.T) {
 	defer srv.Stop()
 	defer lis.Close()
 
-	handler := getHandler(ctrl)
+	services := mock_service.NewMockServices(ctrl)
+	logger := mock_logger.NewMockLogger(ctrl)
+	handler := HandlerGRPC{
+		service: services,
+		logger:  logger,
+	}
 
 	event_pb.RegisterEventServiceServer(srv, &handler)
 
