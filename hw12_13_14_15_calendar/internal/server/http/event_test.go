@@ -23,7 +23,7 @@ import (
 
 const url = "/api/v1/events"
 
-func TestHandlerCreateEvent(t *testing.T) {
+func TestHandlerHTTPCreateEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
@@ -77,7 +77,7 @@ func TestHandlerCreateEvent(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestHandlerCreateEventError(t *testing.T) {
+func TestHandlerHTTPCreateEventError(t *testing.T) {
 	testCases := []struct {
 		name             string
 		expectedResponse response
@@ -185,7 +185,7 @@ func TestHandlerCreateEventError(t *testing.T) {
 }
 
 //nolint:funlen
-func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
+func TestHandlerHTTPCreateEventErrorCreatingEvent(t *testing.T) {
 	testCases := []struct {
 		name             string
 		expectedResponse response
@@ -365,7 +365,7 @@ func TestHandlerCreateEventErrorCreatingEvent(t *testing.T) {
 	}
 }
 
-func TestHandlerUpdateEvent(t *testing.T) {
+func TestHandlerHTTPUpdateEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
@@ -433,7 +433,7 @@ func TestHandlerUpdateEvent(t *testing.T) {
 	require.Equal(t, expectedBody, responseBody)
 }
 
-func TestHandlerUpdateEventError(t *testing.T) {
+func TestHandlerHTTPUpdateEventError(t *testing.T) {
 	testCases := []struct {
 		name             string
 		expectedResponse response
@@ -567,7 +567,7 @@ func TestHandlerUpdateEventError(t *testing.T) {
 	}
 }
 
-func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
+func TestHandlerHTTPUpdateEventErrorUpdatingEvent(t *testing.T) {
 	testCases := []struct {
 		name             string
 		expectedResponse response
@@ -682,7 +682,7 @@ func TestHandlerUpdateEventErrorUpdatingEvent(t *testing.T) {
 	}
 }
 
-func TestHandlerDeleteEvent(t *testing.T) {
+func TestHandlerHTTPDeleteEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
@@ -708,7 +708,7 @@ func TestHandlerDeleteEvent(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestHandlerDeleteEventError(t *testing.T) {
+func TestHandlerHTTPDeleteEventError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
@@ -739,7 +739,7 @@ func TestHandlerDeleteEventError(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
+func TestHandlerHTTPDeleteEventErrorDeletingEvent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	services := mock_service.NewMockServices(ctrl)
@@ -775,7 +775,7 @@ func TestHandlerDeleteEventErrorDeletingEvent(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
-func TestHandlerGetAllEvents(t *testing.T) {
+func TestHandlerHTTPGetAllEvents(t *testing.T) {
 	dateStr := "2023-07-22T12:00:00Z"
 	date, err := time.Parse(time.RFC3339, dateStr)
 	require.NoError(t, err)
@@ -930,7 +930,7 @@ func TestHandlerGetAllEvents(t *testing.T) {
 	}
 }
 
-func TestHandlerGetAllEventsError(t *testing.T) {
+func TestHandlerHTTPGetAllEventsError(t *testing.T) {
 	date := "date"
 	expectedMessage := "date must be in RFC3339 format"
 	expectedError := "parsing time \"date\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"date\" as \"2006\""
