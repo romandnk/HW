@@ -11,9 +11,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const logPath = "./logging/logging.txt"
-
-func loggingInterceptor(log logger.Logger) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { //nolint:lll
+func loggingInterceptor(log logger.Logger, logPath string) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { //nolint:lll
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		start := time.Now()
 

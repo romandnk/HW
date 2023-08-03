@@ -25,10 +25,10 @@ type ServerGRPC struct {
 	handler *HandlerGRPC
 }
 
-func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig) *ServerGRPC {
+func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig, logPath string) *ServerGRPC {
 	serverOptions := []grpc.ServerOption{
 		grpc.Creds(insecure.NewCredentials()),
-		grpc.UnaryInterceptor(loggingInterceptor(log)),
+		grpc.UnaryInterceptor(loggingInterceptor(log, logPath)),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle: cfg.MaxConnectionIdle,
 			MaxConnectionAge:  cfg.MaxConnectionAge,

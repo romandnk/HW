@@ -11,8 +11,6 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const logPath = "./logging/logging.txt"
-
 type RequestInfo struct {
 	ClientIP    string
 	Date        string
@@ -23,7 +21,7 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
-func loggerMiddleware(log logger.Logger) gin.HandlerFunc {
+func loggerMiddleware(log logger.Logger, logPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 

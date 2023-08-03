@@ -32,6 +32,7 @@ func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, 
 			Message: ErrInvalidDuration.Error(),
 		}
 	}
+	event.Description = strings.TrimSpace(event.Description)
 	if event.UserID <= 0 {
 		return "", customerror.CustomError{
 			Field:   "user_id",
@@ -60,6 +61,7 @@ func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event
 			Message: ErrInvalidDuration.Error(),
 		}
 	}
+	event.Description = strings.TrimSpace(event.Description)
 	if event.UserID < 0 {
 		return models.Event{}, customerror.CustomError{
 			Field:   "user_id",

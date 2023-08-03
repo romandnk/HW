@@ -2,30 +2,19 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
-	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
+	eventpb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var (
-	ErrNeedID        = errors.New("there must be id")
-	ErrEmptyID       = errors.New("id cannot be empty")
-	ErrNeedDate      = errors.New("there must be date")
-	ErrEmptyDate     = errors.New("date cannot be empty")
-	ErrEmptyPeriod   = errors.New("period cannot be empty")
-	ErrInvalidPeriod = errors.New("period can be \"day\", \"week\", \"month\"")
-)
-
-func (h *HandlerGRPC) CreateEvent(ctx context.Context, req *event_pb.Event) (*event_pb.CreateEventResponse, error) {
+func (h *HandlerGRPC) CreateEvent(ctx context.Context, req *eventpb.CreateEventRequest) (*eventpb.CreateEventResponse, error) {
 	event := models.Event{
 		Title:                req.GetTitle(),
 		Date:                 req.GetDate().AsTime(),
@@ -39,63 +28,48 @@ func (h *HandlerGRPC) CreateEvent(ctx context.Context, req *event_pb.Event) (*ev
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &event_pb.CreateEventResponse{
+	return &eventpb.CreateEventResponse{
 		Id: id,
 	}, nil
 }
 
-func (h *HandlerGRPC) UpdateEvent(ctx context.Context, req *event_pb.UpdateEventRequest) (*event_pb.Event, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.InvalidArgument, ErrNeedID.Error())
+func (h *HandlerGRPC) UpdateEvent(ctx context.Context, req *eventpb.UpdateEventRequest) (*eventpb.UpdateEventResponse, error) {
+	var date time.Time
+	if req.Event.GetDate() != nil {
+		date = req.Event.GetDate().AsTime()
 	}
 
-	ids := md.Get("id")
-	if len(ids) == 0 {
-		return nil, status.Error(codes.InvalidArgument, ErrEmptyID.Error())
-	}
-
-	id := ids[0]
+	id := req.Event.GetId()
 	parsedID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	var date time.Time
-	if req.GetDate() != nil {
-		date = req.GetDate().AsTime()
-	}
-
 	event := models.Event{
-		Title:                req.GetTitle(),
+		ID:                   parsedID.String(),
+		Title:                req.GetEvent().GetTitle(),
 		Date:                 date,
-		Duration:             req.GetDuration().AsDuration(),
-		Description:          req.GetDescription(),
-		UserID:               int(req.GetUserId()),
-		NotificationInterval: req.GetNotificationInterval().AsDuration(),
+		Duration:             req.GetEvent().GetDuration().AsDuration(),
+		Description:          req.GetEvent().GetDescription(),
+		UserID:               int(req.GetEvent().GetUserId()),
+		NotificationInterval: req.GetEvent().GetNotificationInterval().AsDuration(),
 	}
 
-	updatedEvent, err := h.service.UpdateEvent(ctx, parsedID.String(), event)
+	updatedEvent, err := h.service.UpdateEvent(ctx, event.ID, event)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return toPBEvent(updatedEvent), nil
+	pbUpdatedEvent := toPBEvent(updatedEvent)
+	resultEvent := eventpb.UpdateEventResponse{
+		Event: &pbUpdatedEvent,
+	}
+
+	return &resultEvent, nil
 }
 
-func (h *HandlerGRPC) DeleteEvent(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.InvalidArgument, ErrNeedID.Error())
-	}
-
-	ids := md.Get("id")
-	if len(ids) == 0 {
-		return nil, status.Error(codes.InvalidArgument, ErrEmptyID.Error())
-	}
-
-	id := ids[0]
-	parsedID, err := uuid.Parse(id)
+func (h *HandlerGRPC) DeleteEvent(ctx context.Context, req *eventpb.DeleteEventRequest) (*emptypb.Empty, error) {
+	parsedID, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -108,62 +82,73 @@ func (h *HandlerGRPC) DeleteEvent(ctx context.Context, _ *emptypb.Empty) (*empty
 	return &emptypb.Empty{}, nil
 }
 
-func (h *HandlerGRPC) ListEvents(ctx context.Context, _ *emptypb.Empty) (*event_pb.ListEventsResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.InvalidArgument, ErrNeedDate.Error())
-	}
-
-	periods := md.Get("period")
-	if len(periods) == 0 {
-		return nil, status.Error(codes.InvalidArgument, ErrEmptyPeriod.Error())
-	}
-
-	dates := md.Get("date")
-	if len(dates) == 0 {
-		return nil, status.Error(codes.InvalidArgument, ErrEmptyDate.Error())
-	}
-
-	date := dates[0]
-	parsedDate, err := time.Parse(time.RFC3339, date)
+func (h *HandlerGRPC) ListEventsByDay(ctx context.Context, req *eventpb.ListEventsRequest) (*eventpb.ListEventsResponse, error) { //nolint:lll
+	events, err := h.service.GetAllByDayEvents(ctx, req.Date.AsTime())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	var events []models.Event
-	switch periods[0] {
-	case "day":
-		events, err = h.service.GetAllByDayEvents(ctx, parsedDate)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	case "week":
-		events, err = h.service.GetAllByWeekEvents(ctx, parsedDate)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	case "month":
-		events, err = h.service.GetAllByMonthEvents(ctx, parsedDate)
-		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	default:
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidPeriod.Error())
-	}
+	result := make([]*eventpb.Event, 0, len(events))
 
-	result := make([]*event_pb.Event, 0, len(events))
 	for _, event := range events {
-		result = append(result, toPBEvent(event))
+		pbEvent := toPBEvent(event)
+		result = append(result, &pbEvent)
 	}
 
-	return &event_pb.ListEventsResponse{
+	return &eventpb.ListEventsResponse{
 		Events: result,
 	}, nil
 }
 
-func toPBEvent(event models.Event) *event_pb.Event {
-	return &event_pb.Event{
-		Id:                   &event.ID,
+func (h *HandlerGRPC) ListEventsByWeek(ctx context.Context, req *eventpb.ListEventsRequest) (*eventpb.ListEventsResponse, error) { //nolint:lll
+	parsedDate, err := time.Parse(time.RFC3339, req.Date.String())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	events, err := h.service.GetAllByWeekEvents(ctx, parsedDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	result := make([]*eventpb.Event, 0, len(events))
+
+	for _, event := range events {
+		pbEvent := toPBEvent(event)
+		result = append(result, &pbEvent)
+	}
+
+	return &eventpb.ListEventsResponse{
+		Events: result,
+	}, nil
+}
+
+func (h *HandlerGRPC) ListEventsByMonth(ctx context.Context, req *eventpb.ListEventsRequest) (*eventpb.ListEventsResponse, error) { //nolint:lll
+	parsedDate, err := time.Parse(time.RFC3339, req.Date.String())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	events, err := h.service.GetAllByMonthEvents(ctx, parsedDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	result := make([]*eventpb.Event, 0, len(events))
+
+	for _, event := range events {
+		pbEvent := toPBEvent(event)
+		result = append(result, &pbEvent)
+	}
+
+	return &eventpb.ListEventsResponse{
+		Events: result,
+	}, nil
+}
+
+func toPBEvent(event models.Event) eventpb.Event {
+	return eventpb.Event{
+		Id:                   event.ID,
 		Title:                event.Title,
 		Date:                 timestamppb.New(event.Date),
 		Duration:             durationpb.New(event.Duration),

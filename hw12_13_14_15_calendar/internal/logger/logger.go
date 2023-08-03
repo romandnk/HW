@@ -56,7 +56,7 @@ func NewLogger(level string, representation string) *MyLogger {
 }
 
 func (l *MyLogger) WriteLogInFile(path string, result string) error {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}

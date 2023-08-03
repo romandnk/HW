@@ -1,6 +1,7 @@
 [logger]
 level = "INFO"
 representation = "TEXT"
+logs_file_path = "./logging/logging.txt"
 
 [storage]
 type = "postgres"

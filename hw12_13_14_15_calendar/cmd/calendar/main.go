@@ -71,8 +71,8 @@ func main() {
 	handlerHTTP := internalhttp.NewHandlerHTTP(services, logg)
 	handlerGRPC := grpc.NewHandlerGRPC(services, logg)
 
-	serverHTTP := internalhttp.NewServerHTTP(config.ServerHTTP, handlerHTTP.InitRoutes())
-	serverGRPC := grpc.NewServerGRPC(handlerGRPC, logg, config.ServerGRPC)
+	serverHTTP := internalhttp.NewServerHTTP(config.ServerHTTP, handlerHTTP.InitRoutes(config.Logger.LogFilePath))
+	serverGRPC := grpc.NewServerGRPC(handlerGRPC, logg, config.ServerGRPC, config.Logger.LogFilePath)
 
 	go func() {
 		<-ctx.Done()

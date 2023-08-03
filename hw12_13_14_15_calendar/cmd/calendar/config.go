@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 var (
 	ErrLoggerLevel                            = errors.New("invalid logger level")
 	ErrLoggerRepresentation                   = errors.New("invalid logger representation")
+	ErrLoggerEmptyLogFilePath                 = errors.New("logger file path cannot be empty")
+	ErrLoggerFileNotExist                     = errors.New("logger file does not existgit ")
 	ErrHTTPServerHost                         = errors.New("serverHTTP host must not be empty")
 	ErrHTTPServerPortNotNumber                = errors.New("serverHTTP port must be a number")
 	ErrHTTPServerPortWrongNumber              = errors.New("serverHTTP port must be in the interval from 0 to 65535")
@@ -61,6 +64,7 @@ type Config struct {
 type LoggerConf struct {
 	Level          string
 	Representation string
+	LogFilePath    string
 }
 
 type StorageConf struct {
@@ -129,9 +133,11 @@ func NewConfig(path string) (*Config, error) {
 func newLoggerConf() LoggerConf {
 	level := viper.GetString("logger.level")
 	representation := viper.GetString("logger.representation")
+	lofFilePath := viper.GetString("logger.logs_file_path")
 	return LoggerConf{
 		Level:          level,
 		Representation: representation,
+		LogFilePath:    lofFilePath,
 	}
 }
 
@@ -255,6 +261,16 @@ func validateLogger(l LoggerConf) error {
 	loggerRepresentations := map[string]struct{}{"JSON": {}, "TEXT": {}}
 	if _, ok := loggerRepresentations[l.Representation]; !ok {
 		return ErrLoggerRepresentation
+	}
+	if l.LogFilePath == "" {
+		return ErrLoggerEmptyLogFilePath
+	}
+	_, err := os.Stat(l.LogFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrLoggerFileNotExist
+		}
+		return err
 	}
 
 	return nil

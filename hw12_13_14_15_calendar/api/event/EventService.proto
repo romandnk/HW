@@ -9,14 +9,16 @@ import "google/protobuf/timestamp.proto";
 
 
 service EventService {
-  rpc CreateEvent(Event) returns (CreateEventResponse);
-  rpc UpdateEvent(UpdateEventRequest) returns (Event);
-  rpc DeleteEvent(google.protobuf.Empty) returns (google.protobuf.Empty);
-  rpc ListEvents(google.protobuf.Empty) returns (ListEventsResponse);
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse);
+  rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse);
+  rpc DeleteEvent(DeleteEventRequest) returns (google.protobuf.Empty);
+  rpc ListEventsByDay(ListEventsRequest) returns (ListEventsResponse);
+  rpc ListEventsByWeek(ListEventsRequest) returns (ListEventsResponse);
+  rpc ListEventsByMonth(ListEventsRequest) returns (ListEventsResponse);
 }
 
 message Event {
-  optional string id = 1;
+  string id = 1;
   string title = 2;
   google.protobuf.Timestamp date = 3;
   google.protobuf.Duration duration = 4;
@@ -25,23 +27,38 @@ message Event {
   google.protobuf.Duration notification_interval = 7;
 }
 
+message CreateEventRequest {
+  string title = 1;
+  google.protobuf.Timestamp date = 2;
+  google.protobuf.Duration duration = 3;
+  string description = 4;
+  int64 user_id = 5;
+  google.protobuf.Duration notification_interval = 6;
+}
+
 message CreateEventResponse {
   string id = 1;
 }
 
 message UpdateEventRequest {
-  optional string title = 1;
-  optional google.protobuf.Timestamp date = 2;
-  optional google.protobuf.Duration duration = 3;
-  optional string description = 4;
-  optional int64 user_id = 5;
-  optional google.protobuf.Duration notification_interval = 6;
+  Event event = 1;
+}
+
+message UpdateEventResponse {
+  Event event = 1;
 }
 
 message DeleteEventRequest {
   string id = 1;
 }
 
+message ListEventsRequest {
+  google.protobuf.Timestamp date = 1;
+}
+
 message ListEventsResponse {
   repeated Event events = 1;
 }
+
+
+

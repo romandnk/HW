@@ -19,9 +19,9 @@ func NewHandlerHTTP(services service.Services, logger logger.Logger) *HandlerHTT
 	}
 }
 
-func (h *HandlerHTTP) InitRoutes() *gin.Engine {
+func (h *HandlerHTTP) InitRoutes(logPath string) *gin.Engine {
 	router := gin.New()
-	router.Use(loggerMiddleware(h.logger))
+	router.Use(loggerMiddleware(h.logger, logPath))
 	gin.SetMode(gin.ReleaseMode)
 	h.engine = router
 
