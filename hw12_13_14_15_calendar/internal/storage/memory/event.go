@@ -2,9 +2,9 @@ package memorystorage
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
@@ -16,7 +16,10 @@ func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, 
 
 	select {
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return "", customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 
@@ -31,12 +34,18 @@ func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 
 	select {
 	case <-ctx.Done():
-		return models.Event{}, ctx.Err()
+		return models.Event{}, customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 
 	if _, ok := s.events[id]; !ok {
-		return models.Event{}, fmt.Errorf("updating: no event with id %s", id)
+		return models.Event{}, customerror.CustomError{
+			Field:   "id",
+			Message: "no event with id " + id,
+		}
 	}
 
 	s.events[id] = event
@@ -50,12 +59,18 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 
 	if _, ok := s.events[id]; !ok {
-		return fmt.Errorf("deleting: no event with id %s", id)
+		return customerror.CustomError{
+			Field:   "id",
+			Message: "no event with id " + id,
+		}
 	}
 
 	delete(s.events, id)
@@ -69,7 +84,10 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 
@@ -90,7 +108,10 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 
@@ -111,7 +132,10 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
 	default:
 	}
 

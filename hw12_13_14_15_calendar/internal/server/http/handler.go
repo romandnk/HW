@@ -1,29 +1,45 @@
 package internalhttp
 
 import (
-	"net/http"
-
+	"github.com/gin-gonic/gin"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 )
 
-type Handler struct {
-	*http.ServeMux
-	Services *service.Service
+type HandlerHTTP struct {
+	engine   *gin.Engine
+	services service.Services
+	logger   logger.Logger
 }
 
-func NewHandler(services *service.Service) *Handler {
-	return &Handler{
-		Services: services,
+func NewHandlerHTTP(services service.Services, logger logger.Logger) *HandlerHTTP {
+	return &HandlerHTTP{
+		services: services,
+		logger:   logger,
 	}
 }
 
-func (h *Handler) InitRoutes(log *logger.MyLogger) *http.ServeMux {
-	router := http.NewServeMux()
+func (h *HandlerHTTP) InitRoutes(logPath string) *gin.Engine {
+	router := gin.New()
+	router.Use(loggerMiddleware(h.logger, logPath))
+	gin.SetMode(gin.ReleaseMode)
+	h.engine = router
 
-	router.HandleFunc("/", middlewareLogging(log, h.HelloWorld))
-
-	h.ServeMux = router
+	api := router.Group("/api")
+	{
+		version := api.Group("/v1")
+		{
+			adverts := version.Group("/events")
+			{
+				adverts.POST("", h.CreateEvent)
+				adverts.PATCH("/:id", h.UpdateEvent)
+				adverts.DELETE("/:id", h.DeleteEvent)
+				adverts.GET("/day/:date", h.GetAllByDayEvents)
+				adverts.GET("/week/:date", h.GetAllByWeekEvents)
+				adverts.GET("/month/:date", h.GetAllByMonthEvents)
+			}
+		}
+	}
 
 	return router
 }

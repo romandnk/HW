@@ -5,8 +5,18 @@ run:
     - !bench
 
 linters-settings:
+  lll:
+    line-length: 130
+  tagliatelle:
+    case:
+      use-field-name: true
+      rules:
+        json: snake
+        yaml: snake
+        xml: snake
+        toml: snake
   funlen:
-    lines: 150
+    lines: 160
     statements: 80
   depguard:
     rules:

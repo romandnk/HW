@@ -6,13 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"golang.org/x/exp/slog"
-)
-
-const (
-	EmptyStatusCode = "empty"
-	logPath         = "./logging/logging.txt"
 )
 
 type RequestInfo struct {
@@ -25,52 +21,39 @@ type RequestInfo struct {
 	UserAgent   string
 }
 
-type statusCodeRecorder struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (r *statusCodeRecorder) WriteHeader(statusCode int) {
-	r.statusCode = statusCode
-	r.ResponseWriter.WriteHeader(statusCode)
-}
-
-func middlewareLogging(log *logger.MyLogger, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		recorder := &statusCodeRecorder{ResponseWriter: w}
-
+func loggerMiddleware(log logger.Logger, logPath string) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
 
-		next.ServeHTTP(recorder, r)
+		c.Next()
 
 		duration := time.Since(start)
 
-		info := requestInformation(r, duration)
-		statusCode := processStatusCode(recorder.statusCode)
+		info := requestInformation(c.Request, duration)
 
-		log.Info("Request info",
+		log.Info("Request info HTTP",
 			slog.String("client ip", info.ClientIP),
 			slog.String("date", info.Date),
 			slog.String("method", info.Method),
 			slog.String("method path", info.Path),
 			slog.String("HTTP version", info.HTTPVersion),
-			slog.String("status code", statusCode),
+			slog.String("status code", strconv.Itoa(c.Writer.Status())),
 			slog.String("processing time", info.Latency),
 			slog.String("user agent", info.UserAgent),
 		)
 
-		logInFileString := fmt.Sprintf("%s %s %s %s %s %s %s %s",
+		logInFileString := fmt.Sprintf("HTTP: %s %s %s %s %s %d %s %s",
 			info.ClientIP,
 			info.Date,
 			info.Method,
 			info.Path,
 			info.HTTPVersion,
-			statusCode,
+			c.Writer.Status(),
 			info.Latency,
 			info.UserAgent,
 		)
 		if err := log.WriteLogInFile(logPath, logInFileString); err != nil {
-			log.Error(fmt.Sprintf("error wriging log in file with path %s: %s", logPath, err.Error()))
+			log.Error(fmt.Sprintf("errors wriging log in file with path %s: %s", logPath, err.Error()))
 		}
 	}
 }
@@ -95,11 +78,4 @@ func requestInformation(r *http.Request, duration time.Duration) RequestInfo {
 		Latency:     latency,
 		UserAgent:   userAgent,
 	}
-}
-
-func processStatusCode(code int) string {
-	if code == 0 {
-		return EmptyStatusCode
-	}
-	return strconv.Itoa(code)
 }

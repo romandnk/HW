@@ -1,9 +1,10 @@
 [logger]
 level = "INFO"
-representation = "JSON"
+representation = "TEXT"
+logs_file_path = "./logging/logging.txt"
 
 [storage]
-type = "memory"
+type = "postgres"
 
 [storage.database]
 host = "localhost"
@@ -16,8 +17,16 @@ max_conn_lifetime = "1h"
 max_conn_idle_time = "1m"
 
 
-[server]
+[server_http]
 host = "localhost"
 port = "8080"
 read_timeout = "10s"
 write_timeout = "10s"
+
+[server_grpc]
+host = "localhost"
+port = "50051"
+max_connection_idle = "5m"
+max_connection_age = "1h"
+time = "1m"
+timeout = "10s"

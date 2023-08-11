@@ -5,12 +5,13 @@ import (
 	"flag"
 	"log"
 	"net"
-	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
@@ -35,7 +36,7 @@ func main() {
 
 	config, err := NewConfig(configFile)
 	if err != nil {
-		log.Fatalf("config error: %s", err.Error())
+		log.Fatalf("config errors: %s", err.Error())
 	}
 
 	logg := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
@@ -55,19 +56,23 @@ func main() {
 	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
 		if err != nil {
-			logg.Error("error connecting db", slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
-			os.Exit(1) //nolint:gocritic
+			logg.Error("errors connecting db",
+				slog.String("errors", err.Error()),
+				slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+			cancel()
 		}
 		defer db.Close()
 
 		st = sqlstorage.NewStorageSQL(db)
 	}
 
-	services := service.NewService(st, logg)
+	services := service.NewService(st)
 
-	handler := internalhttp.NewHandler(services)
+	handlerHTTP := internalhttp.NewHandlerHTTP(services, logg)
+	handlerGRPC := grpc.NewHandlerGRPC(services, logg)
 
-	server := internalhttp.NewServer(config.Server, handler.InitRoutes(logg))
+	serverHTTP := internalhttp.NewServerHTTP(config.ServerHTTP, handlerHTTP.InitRoutes(config.Logger.LogFilePath))
+	serverGRPC := grpc.NewServerGRPC(handlerGRPC, logg, config.ServerGRPC, config.Logger.LogFilePath)
 
 	go func() {
 		<-ctx.Done()
@@ -75,19 +80,41 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("error stopping server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+		if err := serverHTTP.Stop(ctx); err != nil {
+			logg.Error("errors stopping HTTPServer",
+				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
 			cancel()
-			os.Exit(1)
 		}
+
+		serverGRPC.Stop()
 
 		logg.Info("calendar is stopped")
 	}()
 
-	logg.Info("calendar is running...", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
+	logg.Info("calendar is running...",
+		slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)),
+		slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
 
-	if err := server.Start(); err != nil {
-		logg.Error("error starting server", slog.String("address", net.JoinHostPort(config.Server.Host, config.Server.Port)))
-		cancel()
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if err := serverHTTP.Start(); err != nil {
+			logg.Error("errors starting HTTPServer",
+				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+			cancel()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := serverGRPC.Start(config.ServerGRPC); err != nil {
+			logg.Error("errors starting GRPCServer",
+				slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
+			cancel()
+		}
+	}()
+
+	wg.Wait()
 }

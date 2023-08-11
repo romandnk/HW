@@ -12,8 +12,11 @@ build:
 run: build
 	$(BIN) -config ./configs/calendar_config.toml
 
+generate:
+	go generate ./api/.
+
 migrate:
-	CALENDAR_DB_USER=$(CALENDAR_DB_USER) CALENDAR_DB_PASSWORD=$(CALENDAR_DB_PASSWORD) migrate -path ./migrations -database 'postgres://$(CALENDAR_DB_USER):$(CALENDAR_DB_PASSWORD)@localhost:5432/events?sslmode=disable' up
+	CALENDAR_DB_USER=$(CALENDAR_DB_USER) CALENDAR_DB_PASSWORD=$(CALENDAR_DB_PASSWORD) migrate -path ./migrations -database 'postgres://$(CALENDAR_DB_USER):$(CALENDAR_DB_PASSWORD)@localhost:5432/calendar_db?sslmode=disable' up
 
 build-img:
 	docker build \
@@ -37,3 +40,10 @@ lint: install-lint-deps
 	golangci-lint run ./...
 
 .PHONY: build run build-img run-img version test lint
+
+# local tests
+db:
+	docker run -d --name pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_DB=calendar_db -p 5432:5432 postgres:latest
+
+d:
+	docker stop pg && docker rm pg

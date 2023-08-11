@@ -2,23 +2,22 @@ package sqlstorage
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"regexp"
 	"testing"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/pashagolub/pgxmock/v2"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStorageCreateEvent(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
 	event := models.Event{
 		ID:                   uuid.New().String(),
@@ -30,44 +29,40 @@ func TestStorageCreateEvent(t *testing.T) {
 		NotificationInterval: time.Second,
 	}
 
-	columns := []string{"id"}
-	rows := sqlmock.NewRows(columns).
-		AddRow(event.ID)
-
 	ctx := context.Background()
 
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
-		VALUES ($1, $2, $3, $4, $5, $6, $7) 
-		RETURNING id`, eventsTable)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(
-		driver.Value(event.ID),
-		driver.Value(event.Title),
-		driver.Value(event.Date),
-		driver.Value(event.Duration),
-		driver.Value(event.Description),
-		driver.Value(event.UserID),
-		driver.Value(event.NotificationInterval)).WillReturnRows(rows)
+	mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(
+		event.ID,
+		event.Title,
+		event.Date,
+		event.Duration,
+		event.Description,
+		event.UserID,
+		event.NotificationInterval).WillReturnResult(pgxmock.NewResult("insert", 1))
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	id, err := storage.CreateEvent(ctx, event)
 
 	require.NoError(t, err)
 	require.Equal(t, event.ID, id)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err, "there was unexpected result")
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageUpdateEvent(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	eventBefore := models.Event{
-		ID:                   uuid.New().String(),
+	id := uuid.New().String()
+
+	event := models.Event{
+		ID:                   id,
 		Title:                "test title update before",
 		Date:                 time.Now(),
 		Duration:             time.Second,
@@ -76,159 +71,140 @@ func TestStorageUpdateEvent(t *testing.T) {
 		NotificationInterval: time.Second,
 	}
 
-	eventAfter := models.Event{
-		ID:                   eventBefore.ID,
-		Title:                "test title update after",
-		Date:                 eventBefore.Date,
-		Duration:             time.Second,
-		Description:          "test description update after",
-		UserID:               4,
-		NotificationInterval: time.Second,
-	}
-
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
-	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	rowsAfter := sqlmock.NewRows(columns).AddRow(eventAfter.ID, eventAfter.Title, eventAfter.Date, eventAfter.Duration,
-		eventAfter.Description, eventAfter.UserID, eventAfter.NotificationInterval)
+	columnsUpdate := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
+	rows := pgxmock.NewRows(columnsUpdate).AddRow(event.ID, event.Title, event.Date,
+		event.Duration, event.Description, event.UserID, event.NotificationInterval)
 
-	queryUpdate := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		UPDATE %s SET 
-              title = $1, 
-              date = $2, 
-              duration = $3, 
-              description = $4, 
-              user_id = $5, 
-              notification_interval = $6 
-          WHERE id = $7 
-          RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+        	title = COALESCE($1, title),
+            date = COALESCE($2, date),
+            duration = COALESCE($3, duration),
+            description = COALESCE($4, description),
+            user_id = COALESCE($5, user_id),
+            notification_interval = COALESCE($6, notification_interval)
+        WHERE id = $7 
+        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryUpdate)).WithArgs(
-		driver.Value(eventAfter.Title),
-		driver.Value(eventAfter.Date),
-		driver.Value(eventAfter.Duration),
-		driver.Value(eventAfter.Description),
-		driver.Value(eventAfter.UserID),
-		driver.Value(eventAfter.NotificationInterval),
-		driver.Value(eventAfter.ID)).WillReturnRows(rowsAfter)
+	updatingEvent := checkEmptyFields(event)
 
-	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
+	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(
+		updatingEvent.Title,
+		updatingEvent.Date,
+		updatingEvent.Duration,
+		updatingEvent.Description,
+		updatingEvent.UserID,
+		updatingEvent.NotificationInterval,
+		id).WillReturnRows(rows)
+
+	updatedEvent, err := storage.UpdateEvent(ctx, id, event)
 	require.NoError(t, err)
-	require.Equal(t, eventAfter, updatedEvent)
+	require.Equal(t, event, updatedEvent)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageUpdateEventError(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	eventBefore := models.Event{
-		ID:                   uuid.New().String(),
-		Title:                "test title update before",
+	id := "wrong id"
+
+	event := models.Event{
+		Title:                "test title update",
 		Date:                 time.Now(),
 		Duration:             time.Second,
-		Description:          "test description update before",
-		UserID:               4,
-		NotificationInterval: time.Second,
-	}
-
-	eventAfter := models.Event{
-		ID:                   eventBefore.ID,
-		Title:                "test title update after",
-		Date:                 eventBefore.Date,
-		Duration:             time.Second,
-		Description:          "test description update after",
+		Description:          "test description update",
 		UserID:               4,
 		NotificationInterval: time.Second,
 	}
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
-	queryUpdate := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		UPDATE %s SET 
-              title = $1, 
-              date = $2, 
-              duration = $3, 
-              description = $4, 
-              user_id = $5, 
-              notification_interval = $6 
-          WHERE id = $7 
-          RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+        	title = COALESCE($1, title),
+            date = COALESCE($2, date),
+            duration = COALESCE($3, duration),
+            description = COALESCE($4, description),
+            user_id = COALESCE($5, user_id),
+            notification_interval = COALESCE($6, notification_interval)
+        WHERE id = $7 
+        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryUpdate)).WithArgs(
-		driver.Value(eventAfter.Title),
-		driver.Value(eventAfter.Date),
-		driver.Value(eventAfter.Duration),
-		driver.Value(eventAfter.Description),
-		driver.Value(eventAfter.UserID),
-		driver.Value(eventAfter.NotificationInterval),
-		driver.Value(eventAfter.ID)).WillReturnError(pgx.ErrNoRows)
+	updatingEvent := checkEmptyFields(event)
 
-	updatedEvent, err := storage.UpdateEvent(ctx, eventBefore.ID, eventAfter)
-	expectedError := fmt.Errorf("no event with id %s", eventBefore.ID)
+	mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(
+		updatingEvent.Title,
+		updatingEvent.Date,
+		updatingEvent.Duration,
+		updatingEvent.Description,
+		updatingEvent.UserID,
+		updatingEvent.NotificationInterval,
+		id).WillReturnError(pgx.ErrNoRows)
+
+	updatedEvent, err := storage.UpdateEvent(ctx, id, event)
+	expectedError := fmt.Errorf("no event with id %s", id)
 	require.EqualError(t, err, expectedError.Error())
 	require.Equal(t, models.Event{}, updatedEvent)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageDeleteEvent(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
 	id := uuid.New().String()
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	queryDelete := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
-	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(driver.Value(id)).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(id).WillReturnResult(pgxmock.NewResult("DELETE", 1))
 
 	err = storage.DeleteEvent(ctx, id)
 	require.NoError(t, err)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageDeleteEventError(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
 	id := uuid.New().String()
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	queryDelete := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
-	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(driver.Value(id)).WillReturnResult(sqlmock.NewResult(1, 0))
+	mock.ExpectExec(regexp.QuoteMeta(queryDelete)).WithArgs(id).WillReturnResult(pgxmock.NewResult("DELETE", 0))
 
 	err = storage.DeleteEvent(ctx, id)
 	expectedError := fmt.Errorf("no event with id %s", id)
 	require.EqualError(t, err, expectedError.Error())
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByDayEvents(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
 
@@ -255,67 +231,65 @@ func TestStorageGetAllByDayEvents(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns).
+	expectedRows := pgxmock.NewRows(columns).
 		AddRow("1", "Event 1", date, time.Hour, "Description 1", 1, time.Hour).
 		AddRow("2", "Event 2", date, 2*time.Hour, "Description 2", 2, 2*time.Hour)
 
 	queryGetByDay := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
+		FROM %s
 		WHERE date = $1`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 2)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByDayEventsEmpty(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	var expectedEvents []models.Event
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns)
+	expectedRows := pgxmock.NewRows(columns)
 
 	queryGetByDay := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
+		FROM %s
 		WHERE date = $1`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByWeekEvents(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	expectedEvents := []models.Event{
 		{
@@ -330,7 +304,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 		{
 			ID:                   "2",
 			Title:                "Event 2",
-			Date:                 date.AddDate(0, 0, 1),
+			Date:                 date.AddDate(0, 0, 6),
 			Duration:             2 * time.Hour,
 			Description:          "Description 2",
 			UserID:               2,
@@ -340,32 +314,31 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns).
+	expectedRows := pgxmock.NewRows(columns).
 		AddRow("1", "Event 1", date, time.Hour, "Description 1", 1, time.Hour).
-		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour)
+		AddRow("2", "Event 2", date.AddDate(0, 0, 6), 2*time.Hour, "Description 2", 2, 2*time.Hour)
 
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+		FROM %s
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 2)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
 	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
 
@@ -373,32 +346,31 @@ func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns)
+	expectedRows := pgxmock.NewRows(columns)
 
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '7 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+		FROM %s
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByMonthEvents(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	expectedEvents := []models.Event{
 		{
@@ -419,59 +391,67 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 			UserID:               2,
 			NotificationInterval: 2 * time.Hour,
 		},
+		{
+			ID:                   "3",
+			Title:                "Event 3",
+			Date:                 date.AddDate(0, 0, 29),
+			Duration:             3 * time.Hour,
+			Description:          "Description 3",
+			UserID:               3,
+			NotificationInterval: 3 * time.Hour,
+		},
 	}
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns).
+	expectedRows := pgxmock.NewRows(columns).
 		AddRow("1", "Event 1", date, time.Hour, "Description 1", 1, time.Hour).
-		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour)
+		AddRow("2", "Event 2", date.AddDate(0, 0, 1), 2*time.Hour, "Description 2", 2, 2*time.Hour).
+		AddRow("3", "Event 3", date.AddDate(0, 0, 29), 3*time.Hour, "Description 3", 3, 3*time.Hour)
 
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+		FROM %s
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
-	require.Len(t, actualEvents, 2)
+	require.Len(t, actualEvents, 3)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
 func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
-	db, mock, err := sqlmock.New()
+	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
-	defer db.Close()
+	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	var expectedEvents []models.Event
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(db)
+	storage := NewStorageSQL(mock)
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
-	expectedRows := sqlmock.NewRows(columns)
+	expectedRows := pgxmock.NewRows(columns)
 
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '1 month'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(driver.Value(date)).WillReturnRows(expectedRows)
+		FROM %s
+		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
 	require.Len(t, actualEvents, 0)
 	require.ElementsMatch(t, expectedEvents, actualEvents)
 
-	err = mock.ExpectationsWereMet()
-	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
