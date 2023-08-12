@@ -1,31 +1,21 @@
 package grpc
 
 import (
-	"net"
-	"time"
-
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
+	"net"
 )
-
-type ServerGRPCConfig struct {
-	Host              string
-	Port              string
-	MaxConnectionIdle time.Duration
-	MaxConnectionAge  time.Duration
-	Time              time.Duration
-	Timeout           time.Duration
-}
 
 type ServerGRPC struct {
 	srv     *grpc.Server
 	handler *HandlerGRPC
 }
 
-func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig, logPath string) *ServerGRPC {
+func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg config.ServerGRPCConfig, logPath string) *ServerGRPC {
 	serverOptions := []grpc.ServerOption{
 		grpc.Creds(insecure.NewCredentials()),
 		grpc.UnaryInterceptor(loggingInterceptor(log, logPath)),
@@ -45,7 +35,7 @@ func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig
 	}
 }
 
-func (s *ServerGRPC) Start(cfg ServerGRPCConfig) error {
+func (s *ServerGRPC) Start(cfg config.ServerGRPCConfig) error {
 	lsn, err := net.Listen("tcp", net.JoinHostPort(cfg.Host, cfg.Port))
 	if err != nil {
 		return err

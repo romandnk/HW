@@ -47,3 +47,9 @@ db:
 
 d:
 	docker stop pg && docker rm pg
+
+r:
+	docker run -d --hostname rabbitmq --name rmq -p 15672:15672 rabbitmq:3-management
+
+dr:
+	docker stop rmq && docker rm rmq

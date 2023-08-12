@@ -8,9 +8,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv" //nolint:depguard
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
-	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
-	dbconf "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
 	"github.com/spf13/viper"
 )
 
@@ -56,8 +53,8 @@ var (
 
 type CalendarConfig struct {
 	Logger     LoggerConf
-	ServerHTTP internalhttp.ServerHTTPConfig
-	ServerGRPC grpc.ServerGRPCConfig
+	ServerHTTP ServerHTTPConfig
+	ServerGRPC ServerGRPCConfig
 	Storage    StorageConf
 }
 
@@ -67,9 +64,38 @@ type LoggerConf struct {
 	LogFilePath    string
 }
 
+type ServerHTTPConfig struct {
+	Host         string
+	Port         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+}
+
+type ServerGRPCConfig struct {
+	Host              string
+	Port              string
+	MaxConnectionIdle time.Duration
+	MaxConnectionAge  time.Duration
+	Time              time.Duration
+	Timeout           time.Duration
+}
+
 type StorageConf struct {
 	Type string
-	DB   dbconf.DBConf
+	DB   DBConf
+}
+
+type DBConf struct {
+	Host            string
+	Port            string
+	Username        string
+	Password        string
+	DBName          string
+	SSLMode         string
+	MaxConns        int           // max connections in the pool
+	MinConns        int           // min connections in the pool which must be opened
+	MaxConnLifetime time.Duration // time after which db conn will be removed from the pool if there was no active use.
+	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
 }
 
 func NewCalendarConfig(path string) (*CalendarConfig, error) {
@@ -141,23 +167,23 @@ func newLoggerConf() LoggerConf {
 	}
 }
 
-func newServerHTTPConf() (internalhttp.ServerHTTPConfig, error) {
+func newServerHTTPConf() (ServerHTTPConfig, error) {
 	host := viper.GetString("server_http.host")
 	port := viper.GetString("server_http.port")
 
 	readTimeoutStr := viper.GetString("server_http.read_timeout")
 	readTimeout, err := time.ParseDuration(readTimeoutStr)
 	if err != nil {
-		return internalhttp.ServerHTTPConfig{}, ErrParseHTTPServerReadTimeout
+		return ServerHTTPConfig{}, ErrParseHTTPServerReadTimeout
 	}
 
 	writeTimeoutStr := viper.GetString("server_http.write_timeout")
 	writeTimeout, err := time.ParseDuration(writeTimeoutStr)
 	if err != nil {
-		return internalhttp.ServerHTTPConfig{}, ErrParseHTTPServerWriteTimeout
+		return ServerHTTPConfig{}, ErrParseHTTPServerWriteTimeout
 	}
 
-	return internalhttp.ServerHTTPConfig{
+	return ServerHTTPConfig{
 		Host:         host,
 		Port:         port,
 		ReadTimeout:  readTimeout,
@@ -165,35 +191,35 @@ func newServerHTTPConf() (internalhttp.ServerHTTPConfig, error) {
 	}, nil
 }
 
-func newServerGRPCConf() (grpc.ServerGRPCConfig, error) {
+func newServerGRPCConf() (ServerGRPCConfig, error) {
 	host := viper.GetString("server_grpc.host")
 	port := viper.GetString("server_grpc.port")
 
 	maxConnectionIdleStr := viper.GetString("server_grpc.max_connection_idle")
 	maxConnectionIdle, err := time.ParseDuration(maxConnectionIdleStr)
 	if err != nil {
-		return grpc.ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionIdle
+		return ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionIdle
 	}
 
 	maxConnectionAgeStr := viper.GetString("server_grpc.max_connection_age")
 	maxConnectionAge, err := time.ParseDuration(maxConnectionAgeStr)
 	if err != nil {
-		return grpc.ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionAge
+		return ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionAge
 	}
 
 	timeStr := viper.GetString("server_grpc.time")
 	parsedTime, err := time.ParseDuration(timeStr)
 	if err != nil {
-		return grpc.ServerGRPCConfig{}, ErrParseGRPCServerTime
+		return ServerGRPCConfig{}, ErrParseGRPCServerTime
 	}
 
 	timeoutStr := viper.GetString("server_grpc.timeout")
 	timeout, err := time.ParseDuration(timeoutStr)
 	if err != nil {
-		return grpc.ServerGRPCConfig{}, ErrParseGRPCServerTimeout
+		return ServerGRPCConfig{}, ErrParseGRPCServerTimeout
 	}
 
-	return grpc.ServerGRPCConfig{
+	return ServerGRPCConfig{
 		Host:              host,
 		Port:              port,
 		MaxConnectionIdle: maxConnectionIdle,
@@ -232,7 +258,7 @@ func newStorageConf() (StorageConf, error) {
 			return StorageConf{}, ErrParseMaxConnIdleTime
 		}
 
-		DBconf := dbconf.DBConf{
+		DBconf := DBConf{
 			Host:            host,
 			Port:            port,
 			Username:        username,
@@ -276,7 +302,7 @@ func validateLogger(l LoggerConf) error {
 	return nil
 }
 
-func validateServerHTTP(s internalhttp.ServerHTTPConfig) error {
+func validateServerHTTP(s ServerHTTPConfig) error {
 	if s.Host == "" {
 		return ErrHTTPServerHost
 	}
@@ -297,7 +323,7 @@ func validateServerHTTP(s internalhttp.ServerHTTPConfig) error {
 	return nil
 }
 
-func validateServerGRPC(s grpc.ServerGRPCConfig) error {
+func validateServerGRPC(s ServerGRPCConfig) error {
 	if s.Host == "" {
 		return ErrHTTPServerHost
 	}

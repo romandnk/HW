@@ -3,11 +3,12 @@ package sqlstorage
 import (
 	"context"
 	"fmt"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgresDB(ctx context.Context, cfg DBConf) (PgxIface, error) {
+func NewPostgresDB(ctx context.Context, cfg config.DBConf) (PgxIface, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.Username,
 		cfg.Password,
