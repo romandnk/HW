@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	"strings"
 	"time"
 
@@ -18,7 +19,15 @@ var (
 	ErrInvalidNotificationInterval = errors.New("notification interval cannot be negative")
 )
 
-func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, error) {
+type EventService struct {
+	event storage.EventStorage
+}
+
+func NewEventService(event storage.EventStorage) *EventService {
+	return &EventService{event: event}
+}
+
+func (s *EventService) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	event.Title = strings.TrimSpace(event.Title)
 	if event.Title == "" {
 		return "", customerror.CustomError{
@@ -51,7 +60,7 @@ func (s *Service) CreateEvent(ctx context.Context, event models.Event) (string, 
 	return s.event.CreateEvent(ctx, event)
 }
 
-func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
+func (s *EventService) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	event.Title = strings.TrimSpace(event.Title)
 	if event.Duration < 0 {
 		return models.Event{}, customerror.CustomError{
@@ -76,18 +85,18 @@ func (s *Service) UpdateEvent(ctx context.Context, id string, event models.Event
 	return s.event.UpdateEvent(ctx, id, event)
 }
 
-func (s *Service) DeleteEvent(ctx context.Context, id string) error {
+func (s *EventService) DeleteEvent(ctx context.Context, id string) error {
 	return s.event.DeleteEvent(ctx, id)
 }
 
-func (s *Service) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *EventService) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	return s.event.GetAllByDayEvents(ctx, date)
 }
 
-func (s *Service) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *EventService) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	return s.event.GetAllByWeekEvents(ctx, date)
 }
 
-func (s *Service) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *EventService) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	return s.event.GetAllByMonthEvents(ctx, date)
 }

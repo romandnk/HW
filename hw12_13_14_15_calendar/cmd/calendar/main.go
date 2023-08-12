@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"log"
 	"net"
 	"os/signal"
@@ -34,12 +35,12 @@ func main() {
 		return
 	}
 
-	config, err := NewConfig(configFile)
+	cfg, err := config.NewCalendarConfig(configFile)
 	if err != nil {
-		log.Fatalf("config errors: %s", err.Error())
+		log.Fatalf("cfg errors: %s", err.Error())
 	}
 
-	logg := logger.NewLogger(config.Logger.Level, config.Logger.Representation)
+	logg := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Representation)
 
 	logg.Info("use logging")
 
@@ -50,15 +51,15 @@ func main() {
 	var st storage.Storage
 
 	// use memory storage or sql storage
-	switch config.Storage.Type {
+	switch cfg.Storage.Type {
 	case "memory":
 		st = memorystorage.NewStorageMemory()
 	case "postgres":
-		db, err := sqlstorage.NewPostgresDB(ctx, config.Storage.DB)
+		db, err := sqlstorage.NewPostgresDB(ctx, cfg.Storage.DB)
 		if err != nil {
 			logg.Error("errors connecting db",
 				slog.String("errors", err.Error()),
-				slog.String("address", config.Storage.DB.Host+":"+config.Storage.DB.Port))
+				slog.String("address", cfg.Storage.DB.Host+":"+cfg.Storage.DB.Port))
 			cancel()
 		}
 		defer db.Close()
@@ -71,8 +72,8 @@ func main() {
 	handlerHTTP := internalhttp.NewHandlerHTTP(services, logg)
 	handlerGRPC := grpc.NewHandlerGRPC(services, logg)
 
-	serverHTTP := internalhttp.NewServerHTTP(config.ServerHTTP, handlerHTTP.InitRoutes(config.Logger.LogFilePath))
-	serverGRPC := grpc.NewServerGRPC(handlerGRPC, logg, config.ServerGRPC, config.Logger.LogFilePath)
+	serverHTTP := internalhttp.NewServerHTTP(cfg.ServerHTTP, handlerHTTP.InitRoutes(cfg.Logger.LogFilePath))
+	serverGRPC := grpc.NewServerGRPC(handlerGRPC, logg, cfg.ServerGRPC, cfg.Logger.LogFilePath)
 
 	go func() {
 		<-ctx.Done()
@@ -82,7 +83,7 @@ func main() {
 
 		if err := serverHTTP.Stop(ctx); err != nil {
 			logg.Error("errors stopping HTTPServer",
-				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+				slog.String("address http", net.JoinHostPort(cfg.ServerHTTP.Host, cfg.ServerHTTP.Port)))
 			cancel()
 		}
 
@@ -92,8 +93,8 @@ func main() {
 	}()
 
 	logg.Info("calendar is running...",
-		slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)),
-		slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
+		slog.String("address http", net.JoinHostPort(cfg.ServerHTTP.Host, cfg.ServerHTTP.Port)),
+		slog.String("address grpc", net.JoinHostPort(cfg.ServerGRPC.Host, cfg.ServerGRPC.Port)))
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -102,16 +103,16 @@ func main() {
 		defer wg.Done()
 		if err := serverHTTP.Start(); err != nil {
 			logg.Error("errors starting HTTPServer",
-				slog.String("address http", net.JoinHostPort(config.ServerHTTP.Host, config.ServerHTTP.Port)))
+				slog.String("address http", net.JoinHostPort(cfg.ServerHTTP.Host, cfg.ServerHTTP.Port)))
 			cancel()
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if err := serverGRPC.Start(config.ServerGRPC); err != nil {
+		if err := serverGRPC.Start(cfg.ServerGRPC); err != nil {
 			logg.Error("errors starting GRPCServer",
-				slog.String("address grpc", net.JoinHostPort(config.ServerGRPC.Host, config.ServerGRPC.Port)))
+				slog.String("address grpc", net.JoinHostPort(cfg.ServerGRPC.Host, cfg.ServerGRPC.Port)))
 			cancel()
 		}
 	}()

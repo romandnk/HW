@@ -7,7 +7,7 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-type Event interface {
+type EventStorage interface {
 	CreateEvent(ctx context.Context, event models.Event) (string, error)
 	UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error)
 	DeleteEvent(ctx context.Context, id string) error
@@ -17,5 +17,5 @@ type Event interface {
 }
 
 type Storage interface {
-	Event
+	EventStorage
 }

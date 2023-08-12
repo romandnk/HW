@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -54,7 +54,7 @@ var (
 	postgresStorage = "postgres"
 )
 
-type Config struct {
+type CalendarConfig struct {
 	Logger     LoggerConf
 	ServerHTTP internalhttp.ServerHTTPConfig
 	ServerGRPC grpc.ServerGRPCConfig
@@ -72,16 +72,16 @@ type StorageConf struct {
 	DB   dbconf.DBConf
 }
 
-func NewConfig(path string) (*Config, error) {
+func NewCalendarConfig(path string) (*CalendarConfig, error) {
 	viper.SetConfigFile(path) // find config file with specific path
 
 	err := viper.ReadInConfig() // read config file
 	if err != nil {
-		return &Config{}, fmt.Errorf("errors reading config file: %w", err)
+		return &CalendarConfig{}, fmt.Errorf("errors reading config file: %w", err)
 	}
 
 	if err := godotenv.Load("./configs/.env"); err != nil { // load .env into system
-		return &Config{}, fmt.Errorf("errors loading .env: %w", err)
+		return &CalendarConfig{}, fmt.Errorf("errors loading .env: %w", err)
 	}
 
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password
@@ -90,37 +90,37 @@ func NewConfig(path string) (*Config, error) {
 	logger := newLoggerConf()
 	err = validateLogger(logger)
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 
 	serverHTTP, err := newServerHTTPConf()
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 	err = validateServerHTTP(serverHTTP)
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 
 	serverGRPC, err := newServerGRPCConf()
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 	err = validateServerGRPC(serverGRPC)
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 
 	storage, err := newStorageConf()
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 	err = validateStorage(storage)
 	if err != nil {
-		return &Config{}, err
+		return &CalendarConfig{}, err
 	}
 
-	config := Config{
+	config := CalendarConfig{
 		Logger:     logger,
 		ServerHTTP: serverHTTP,
 		ServerGRPC: serverGRPC,
