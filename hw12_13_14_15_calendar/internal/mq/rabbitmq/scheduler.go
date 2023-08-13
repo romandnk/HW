@@ -30,6 +30,10 @@ func NewScheduler(cfg config.SchedulerRabbit, log logger.Logger) (*Scheduler, er
 		return nil, err
 	}
 
+	go func() {
+		conn.NotifyClose(make(chan *amqp.Error))
+	}()
+
 	return &Scheduler{
 		conn: conn,
 		log:  log,

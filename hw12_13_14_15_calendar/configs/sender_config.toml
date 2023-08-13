@@ -1,0 +1,13 @@
+[rabbit_sender]
+host = "localhost"
+port = 5672
+heartbeat = "30s"
+exchange_name = "notification"
+exchange_type = "direct"
+durable_exchange = true
+autoDelete_exchange = false
+queue_name = "notification"
+durable_queue     = true
+autoDelete_queue = false
+touting_key = "notification"
+tag = "sender"

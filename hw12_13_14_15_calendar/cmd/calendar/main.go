@@ -37,7 +37,7 @@ func main() {
 
 	cfg, err := config.NewCalendarConfig(configFile)
 	if err != nil {
-		log.Fatalf("cfg errors: %s", err.Error())
+		log.Fatalf("calendar config error: %s", err.Error())
 	}
 
 	logg := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Representation)

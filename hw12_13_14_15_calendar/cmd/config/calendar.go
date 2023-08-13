@@ -52,13 +52,13 @@ var (
 )
 
 type CalendarConfig struct {
-	Logger     LoggerConf
+	Logger     LoggerConfig
 	ServerHTTP ServerHTTPConfig
 	ServerGRPC ServerGRPCConfig
-	Storage    StorageConf
+	Storage    StorageConfig
 }
 
-type LoggerConf struct {
+type LoggerConfig struct {
 	Level          string
 	Representation string
 	LogFilePath    string
@@ -80,12 +80,12 @@ type ServerGRPCConfig struct {
 	Timeout           time.Duration
 }
 
-type StorageConf struct {
+type StorageConfig struct {
 	Type string
-	DB   DBConf
+	DB   DBConfig
 }
 
-type DBConf struct {
+type DBConfig struct {
 	Host            string
 	Port            string
 	Username        string
@@ -103,11 +103,11 @@ func NewCalendarConfig(path string) (*CalendarConfig, error) {
 
 	err := viper.ReadInConfig() // read config file
 	if err != nil {
-		return &CalendarConfig{}, fmt.Errorf("errors reading config file: %w", err)
+		return &CalendarConfig{}, fmt.Errorf("errors reading calendar config file: %w", err)
 	}
 
-	if err := godotenv.Load("./configs/.env"); err != nil { // load .env into system
-		return &CalendarConfig{}, fmt.Errorf("errors loading .env: %w", err)
+	if err := godotenv.Load("./configs/calendar.env"); err != nil { // load .env into system
+		return &CalendarConfig{}, fmt.Errorf("errors loading calendar.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password
@@ -156,11 +156,11 @@ func NewCalendarConfig(path string) (*CalendarConfig, error) {
 	return &config, nil
 }
 
-func newLoggerConf() LoggerConf {
+func newLoggerConf() LoggerConfig {
 	level := viper.GetString("logger.level")
 	representation := viper.GetString("logger.representation")
 	lofFilePath := viper.GetString("logger.logs_file_path")
-	return LoggerConf{
+	return LoggerConfig{
 		Level:          level,
 		Representation: representation,
 		LogFilePath:    lofFilePath,
@@ -229,11 +229,11 @@ func newServerGRPCConf() (ServerGRPCConfig, error) {
 	}, nil
 }
 
-func newStorageConf() (StorageConf, error) {
+func newStorageConf() (StorageConfig, error) {
 	storageType := viper.GetString("storage.type")
 	switch storageType {
 	case memStorage:
-		return StorageConf{
+		return StorageConfig{
 			Type: memStorage,
 		}, nil
 	case postgresStorage:
@@ -249,16 +249,16 @@ func newStorageConf() (StorageConf, error) {
 		maxConnLifetimeStr := viper.GetString("storage.database.max_conn_lifetime")
 		maxConnLifetime, err := time.ParseDuration(maxConnLifetimeStr)
 		if err != nil {
-			return StorageConf{}, ErrParseMaxConnLifetime
+			return StorageConfig{}, ErrParseMaxConnLifetime
 		}
 
 		maxConnIdleTimeStr := viper.GetString("storage.database.max_conn_idle_time")
 		maxConnIdleTime, err := time.ParseDuration(maxConnIdleTimeStr)
 		if err != nil {
-			return StorageConf{}, ErrParseMaxConnIdleTime
+			return StorageConfig{}, ErrParseMaxConnIdleTime
 		}
 
-		DBconf := DBConf{
+		DBconf := DBConfig{
 			Host:            host,
 			Port:            port,
 			Username:        username,
@@ -270,16 +270,16 @@ func newStorageConf() (StorageConf, error) {
 			MaxConnLifetime: maxConnLifetime,
 			MaxConnIdleTime: maxConnIdleTime,
 		}
-		return StorageConf{
+		return StorageConfig{
 			Type: postgresStorage,
 			DB:   DBconf,
 		}, nil
 	default:
-		return StorageConf{}, ErrInvalidStorageType
+		return StorageConfig{}, ErrInvalidStorageType
 	}
 }
 
-func validateLogger(l LoggerConf) error {
+func validateLogger(l LoggerConfig) error {
 	loggerLevels := map[string]struct{}{"INFO": {}, "DEBUG": {}, "ERROR": {}, "WARN": {}}
 	if _, ok := loggerLevels[l.Level]; !ok {
 		return ErrLoggerLevel
@@ -350,7 +350,7 @@ func validateServerGRPC(s ServerGRPCConfig) error {
 	return nil
 }
 
-func validateStorage(st StorageConf) error {
+func validateStorage(st StorageConfig) error {
 	if st.Type == postgresStorage { //nolint:nestif
 		if st.DB.Host == "" {
 			return ErrDBHost

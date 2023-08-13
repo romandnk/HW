@@ -14,10 +14,11 @@ import (
 var ErrSenderRabbitNilChannel = errors.New("rabbit sender: channel is nil")
 
 type Sender struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
-	log     logger.Logger
-	cfg     config.SenderRabbit
+	conn       *amqp.Connection
+	channel    *amqp.Channel
+	deliveries <-chan amqp.Delivery
+	log        logger.Logger
+	cfg        config.SenderRabbit
 }
 
 func NewSender(cfg config.SenderRabbit, log logger.Logger) (*Sender, error) {
@@ -83,7 +84,7 @@ func (s *Sender) CloseChannel() error {
 	return nil
 }
 
-func (s *Sender) Consume(ctx context.Context) error {
+func (s *Sender) Consume() error {
 	if s.channel == nil {
 		return ErrSenderRabbitNilChannel
 	}
@@ -130,36 +131,41 @@ func (s *Sender) Consume(ctx context.Context) error {
 		return err
 	}
 
-	go handle(ctx, deliveries)
+	s.deliveries = deliveries
 
 	return nil
 }
 
-func handle(ctx context.Context, deliveries <-chan amqp.Delivery) {
+func Handle(ctx context.Context, deliveries <-chan amqp.Delivery) <-chan Notification {
 	messages := make(chan Notification)
 	defer close(messages)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case delivery := <-deliveries:
-			if err := delivery.Ack(false); err != nil {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case delivery := <-deliveries:
+				var msg Message
+				err := json.Unmarshal(delivery.Body, &msg)
 				notif := Notification{
-					msg: Message{},
+					msg: msg,
 					err: err,
+				}
+
+				if err := delivery.Ack(false); err != nil {
+					notif = Notification{
+						msg: Message{},
+						err: err,
+					}
+
+					messages <- notif
 				}
 
 				messages <- notif
 			}
-			var msg Message
-			err := json.Unmarshal(delivery.Body, &msg)
-			notif := Notification{
-				msg: msg,
-				err: err,
-			}
-
-			messages <- notif
 		}
-	}
+	}()
+
+	return messages
 }
