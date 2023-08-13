@@ -2,9 +2,10 @@ package internalhttp
 
 import (
 	"context"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"net"
 	"net/http"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 )
 
 type ServerHTTP struct {

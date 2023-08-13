@@ -3,9 +3,10 @@ package config
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
-	"time"
 )
 
 var (
@@ -19,9 +20,15 @@ var (
 	ErrRabbitSenderEmptyQueueName    = errors.New("queueName cannot be empty")
 	ErrRabbitSenderEmptyRoutingKey   = errors.New("routingKey cannot be empty")
 	ErrRabbitSenderEmptyTag          = errors.New("tag cannot be empty")
+	ErrRabbitConfigParseHeartbeat    = errors.New("invalid heartbeat")
 )
 
-type SenderRabbit struct {
+type SenderConfig struct {
+	mq  RabbitConfig
+	log LoggerSenderConfig
+}
+
+type RabbitConfig struct {
 	Username           string
 	Password           string
 	Host               string
@@ -38,26 +45,61 @@ type SenderRabbit struct {
 	Tag                string
 }
 
-func NewSenderRabbitConfig(path string) (SenderRabbit, error) {
+type LoggerSenderConfig struct {
+	Level          string
+	Representation string
+}
+
+func NewSenderConfig(path string) (*SenderConfig, error) {
 	viper.SetConfigFile(path)
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		return SenderRabbit{}, fmt.Errorf("errors reading rabbit config file: %w", err)
+		return nil, fmt.Errorf("errors reading rabbit config file: %w", err)
 	}
 
 	if err := godotenv.Load("./configs/sender.env"); err != nil {
-		return SenderRabbit{}, fmt.Errorf("errors loading scheduler.env: %w", err)
+		return nil, fmt.Errorf("errors loading scheduler.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("sender_rabbit")
 	viper.AutomaticEnv()
 
+	rabbitConfig, err := newRabbitConfig()
+	if err != nil {
+		return nil, err
+	}
+	err = validateSenderRabbit(rabbitConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := newLoggerSenderConf()
+	err = validateSenderLogger(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	config := SenderConfig{
+		mq:  rabbitConfig,
+		log: logger,
+	}
+
+	return &config, nil
+}
+
+func newRabbitConfig() (RabbitConfig, error) {
 	username := viper.GetString("user")
 	password := viper.GetString("password")
 	host := viper.GetString("rabbit_sender.host")
 	port := viper.GetInt("rabbit_sender.port")
-	heartbeat := viper.GetDuration("rabbit_sender.heartbeat")
+
+	heartbeatStr := viper.GetString("rabbit_sender.heartbeat")
+	heartbeat, err := time.ParseDuration(heartbeatStr)
+	if err != nil {
+		return RabbitConfig{}, ErrRabbitConfigParseHeartbeat
+	}
+
 	exchangeName := viper.GetString("rabbit_sender.exchange_name")
 	exchangeType := viper.GetString("rabbit_sender.exchange_type")
 	durableExchange := viper.GetBool("rabbit_sender.durable_exchange")
@@ -68,7 +110,7 @@ func NewSenderRabbitConfig(path string) (SenderRabbit, error) {
 	routingKey := viper.GetString("rabbit_sender.touting_key")
 	tag := viper.GetString("rabbit_sender.tag")
 
-	config := SenderRabbit{
+	return RabbitConfig{
 		Username:           username,
 		Password:           password,
 		Host:               host,
@@ -83,17 +125,10 @@ func NewSenderRabbitConfig(path string) (SenderRabbit, error) {
 		AutoDeleteQueue:    autoDeleteQueue,
 		RoutingKey:         routingKey,
 		Tag:                tag,
-	}
-
-	err = validateSenderRabbit(config)
-	if err != nil {
-		return SenderRabbit{}, err
-	}
-
-	return config, nil
+	}, nil
 }
 
-func validateSenderRabbit(s SenderRabbit) error {
+func validateSenderRabbit(s RabbitConfig) error {
 	if s.Username == "" {
 		return ErrRabbitSenderEmptyUsername
 	}
@@ -124,5 +159,27 @@ func validateSenderRabbit(s SenderRabbit) error {
 	if s.Tag == "" {
 		return ErrRabbitSenderEmptyTag
 	}
+	return nil
+}
+
+func newLoggerSenderConf() LoggerSenderConfig {
+	level := viper.GetString("logger.level")
+	representation := viper.GetString("logger.representation")
+	return LoggerSenderConfig{
+		Level:          level,
+		Representation: representation,
+	}
+}
+
+func validateSenderLogger(l LoggerSenderConfig) error {
+	loggerLevels := map[string]struct{}{"INFO": {}, "DEBUG": {}, "ERROR": {}, "WARN": {}}
+	if _, ok := loggerLevels[l.Level]; !ok {
+		return ErrLoggerLevel
+	}
+	loggerRepresentations := map[string]struct{}{"JSON": {}, "TEXT": {}}
+	if _, ok := loggerRepresentations[l.Representation]; !ok {
+		return ErrLoggerRepresentation
+	}
+
 	return nil
 }

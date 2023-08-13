@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"log"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 )
 
 var configFile string
@@ -14,12 +15,10 @@ func init() {
 }
 
 func main() {
-	cfg, err := config.NewSenderRabbitConfig(configFile)
+	cfg, err := config.NewSenderConfig(configFile)
 	if err != nil {
 		log.Fatalf("rabbit sender config error: %s", err.Error())
 	}
-
-	//logg := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Representation)
 
 	fmt.Printf("%+v\n", cfg)
 }

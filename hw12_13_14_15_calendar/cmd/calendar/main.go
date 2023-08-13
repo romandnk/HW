@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"log"
 	"net"
 	"os/signal"
@@ -11,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
@@ -54,6 +54,8 @@ func main() {
 	switch cfg.Storage.Type {
 	case "memory":
 		st = memorystorage.NewStorageMemory()
+		logg.Info("use memory storage")
+
 	case "postgres":
 		db, err := sqlstorage.NewPostgresDB(ctx, cfg.Storage.DB)
 		if err != nil {
@@ -64,6 +66,7 @@ func main() {
 		}
 		defer db.Close()
 
+		logg.Info("use postgres storage")
 		st = sqlstorage.NewStorageSQL(db)
 	}
 

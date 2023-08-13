@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	customerror "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/errors"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 )
 
 var (

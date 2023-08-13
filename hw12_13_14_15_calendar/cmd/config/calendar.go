@@ -15,7 +15,7 @@ var (
 	ErrLoggerLevel                            = errors.New("invalid logger level")
 	ErrLoggerRepresentation                   = errors.New("invalid logger representation")
 	ErrLoggerEmptyLogFilePath                 = errors.New("logger file path cannot be empty")
-	ErrLoggerFileNotExist                     = errors.New("logger file does not existgit ")
+	ErrLoggerFileNotExist                     = errors.New("logger file does not exist")
 	ErrHTTPServerHost                         = errors.New("serverHTTP host must not be empty")
 	ErrHTTPServerPortNotNumber                = errors.New("serverHTTP port must be a number")
 	ErrHTTPServerPortWrongNumber              = errors.New("serverHTTP port must be in the interval from 0 to 65535")
@@ -52,13 +52,13 @@ var (
 )
 
 type CalendarConfig struct {
-	Logger     LoggerConfig
+	Logger     LoggerCalendarConfig
 	ServerHTTP ServerHTTPConfig
 	ServerGRPC ServerGRPCConfig
 	Storage    StorageConfig
 }
 
-type LoggerConfig struct {
+type LoggerCalendarConfig struct {
 	Level          string
 	Representation string
 	LogFilePath    string
@@ -103,47 +103,47 @@ func NewCalendarConfig(path string) (*CalendarConfig, error) {
 
 	err := viper.ReadInConfig() // read config file
 	if err != nil {
-		return &CalendarConfig{}, fmt.Errorf("errors reading calendar config file: %w", err)
+		return nil, fmt.Errorf("errors reading calendar config file: %w", err)
 	}
 
 	if err := godotenv.Load("./configs/calendar.env"); err != nil { // load .env into system
-		return &CalendarConfig{}, fmt.Errorf("errors loading calendar.env: %w", err)
+		return nil, fmt.Errorf("errors loading calendar.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password
 	viper.AutomaticEnv()           // read env variables
 
-	logger := newLoggerConf()
-	err = validateLogger(logger)
+	logger := newLoggerCalendarConf()
+	err = validateCalendarLogger(logger)
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 
 	serverHTTP, err := newServerHTTPConf()
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 	err = validateServerHTTP(serverHTTP)
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 
 	serverGRPC, err := newServerGRPCConf()
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 	err = validateServerGRPC(serverGRPC)
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 
 	storage, err := newStorageConf()
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 	err = validateStorage(storage)
 	if err != nil {
-		return &CalendarConfig{}, err
+		return nil, err
 	}
 
 	config := CalendarConfig{
@@ -156,11 +156,11 @@ func NewCalendarConfig(path string) (*CalendarConfig, error) {
 	return &config, nil
 }
 
-func newLoggerConf() LoggerConfig {
+func newLoggerCalendarConf() LoggerCalendarConfig {
 	level := viper.GetString("logger.level")
 	representation := viper.GetString("logger.representation")
 	lofFilePath := viper.GetString("logger.logs_file_path")
-	return LoggerConfig{
+	return LoggerCalendarConfig{
 		Level:          level,
 		Representation: representation,
 		LogFilePath:    lofFilePath,
@@ -279,7 +279,7 @@ func newStorageConf() (StorageConfig, error) {
 	}
 }
 
-func validateLogger(l LoggerConfig) error {
+func validateCalendarLogger(l LoggerCalendarConfig) error {
 	loggerLevels := map[string]struct{}{"INFO": {}, "DEBUG": {}, "ERROR": {}, "WARN": {}}
 	if _, ok := loggerLevels[l.Level]; !ok {
 		return ErrLoggerLevel

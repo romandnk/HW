@@ -4,9 +4,10 @@ package service
 
 import (
 	"context"
+	"time"
+
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
-	"time"
 )
 
 type Event interface {

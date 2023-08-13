@@ -3,12 +3,12 @@ package sqlstorage
 import (
 	"context"
 	"fmt"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 )
 
-func NewPostgresDB(ctx context.Context, cfg config.DBConf) (PgxIface, error) {
+func NewPostgresDB(ctx context.Context, cfg config.DBConfig) (PgxIface, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.Username,
 		cfg.Password,
@@ -18,17 +18,22 @@ func NewPostgresDB(ctx context.Context, cfg config.DBConf) (PgxIface, error) {
 		cfg.SSLMode,
 	)
 
-	config, err := pgxpool.ParseConfig(connString)
+	conf, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		return nil, err
 	}
 
-	config.MaxConns = int32(cfg.MaxConns)
-	config.MinConns = int32(cfg.MinConns)
-	config.MaxConnLifetime = cfg.MaxConnLifetime
-	config.MaxConnIdleTime = cfg.MaxConnIdleTime
+	conf.MaxConns = int32(cfg.MaxConns)
+	conf.MinConns = int32(cfg.MinConns)
+	conf.MaxConnLifetime = cfg.MaxConnLifetime
+	conf.MaxConnIdleTime = cfg.MaxConnIdleTime
 
-	db, err := pgxpool.NewWithConfig(ctx, config)
+	db, err := pgxpool.NewWithConfig(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping(ctx)
 	if err != nil {
 		return nil, err
 	}

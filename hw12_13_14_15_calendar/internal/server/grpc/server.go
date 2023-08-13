@@ -1,13 +1,14 @@
 package grpc
 
 import (
+	"net"
+
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	event_pb "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc/pb/event"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
-	"net"
 )
 
 type ServerGRPC struct {

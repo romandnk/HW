@@ -1,4 +1,4 @@
-include ./configs/.env
+include ./configs/calendar.env
 
 BIN := "./bin/calendar"
 DOCKER_IMG="calendar:develop"

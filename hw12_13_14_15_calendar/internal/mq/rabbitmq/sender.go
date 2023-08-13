@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
@@ -18,10 +19,10 @@ type Sender struct {
 	channel    *amqp.Channel
 	deliveries <-chan amqp.Delivery
 	log        logger.Logger
-	cfg        config.SenderRabbit
+	cfg        config.RabbitConfig
 }
 
-func NewSender(cfg config.SenderRabbit, log logger.Logger) (*Sender, error) {
+func NewSender(cfg config.RabbitConfig, log logger.Logger) (*Sender, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,

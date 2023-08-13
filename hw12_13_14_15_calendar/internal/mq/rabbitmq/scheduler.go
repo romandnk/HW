@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"golang.org/x/exp/slog"
-	"time"
 )
 
 var ErrSchedulerRabbitNilChannel = errors.New("rabbit scheduler: channel is nil")
