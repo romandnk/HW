@@ -19,10 +19,10 @@ type Sender struct {
 	channel    *amqp.Channel
 	deliveries <-chan amqp.Delivery
 	log        logger.Logger
-	cfg        config.RabbitConfig
+	cfg        config.RabbitSenderConfig
 }
 
-func NewSender(cfg config.RabbitConfig, log logger.Logger) (*Sender, error) {
+func NewSender(cfg config.RabbitSenderConfig, log logger.Logger) (*Sender, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,

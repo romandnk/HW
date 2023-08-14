@@ -49,7 +49,6 @@ linters:
     - asciicheck
     - bodyclose
     - dogsled
-    - dupl
     - durationcheck
     - errorlint
     - exhaustive

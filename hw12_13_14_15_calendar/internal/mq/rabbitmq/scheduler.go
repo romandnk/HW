@@ -18,22 +18,21 @@ type Scheduler struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	log     logger.Logger
-	cfg     config.SchedulerRabbit
+	cfg     config.RabbitSchedulerConfig
 }
 
-func NewScheduler(cfg config.SchedulerRabbit, log logger.Logger) (*Scheduler, error) {
+func NewScheduler(cfg config.RabbitSchedulerConfig, log logger.Logger) (*Scheduler, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,
 	}
+	log.Info("connecting to rabbit scheduler...")
 	conn, err := amqp.DialConfig(url, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	go func() {
-		conn.NotifyClose(make(chan *amqp.Error))
-	}()
+	log.Info("connected to rabbit scheduler")
 
 	return &Scheduler{
 		conn: conn,
@@ -65,8 +64,8 @@ func (s *Scheduler) OpenChannel() error {
 	err = s.channel.ExchangeDeclare(
 		s.cfg.ExchangeName,
 		s.cfg.ExchangeType,
-		s.cfg.Durable,
-		s.cfg.AutoDelete,
+		s.cfg.DurableExchange,
+		s.cfg.AutoDeleteExchange,
 		false,
 		false,
 		nil,
@@ -93,8 +92,31 @@ func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
 		return ErrSchedulerRabbitNilChannel
 	}
 
+	queue, err := s.channel.QueueDeclare(
+		s.cfg.QueueName,
+		s.cfg.DurableQueue,
+		s.cfg.AutoDeleteQueue,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = s.channel.QueueBind(
+		queue.Name,
+		s.cfg.RoutingKey,
+		s.cfg.ExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
 	s.log.Info("publishing...")
-	err := s.channel.PublishWithContext(
+	err = s.channel.PublishWithContext(
 		ctx,
 		s.cfg.ExchangeName,
 		s.cfg.RoutingKey,
@@ -103,7 +125,7 @@ func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
 		amqp.Publishing{
 			ContentType:     "application/json",
 			ContentEncoding: "utf8",
-			DeliveryMode:    s.cfg.DeliveryMode,
+			DeliveryMode:    uint8(s.cfg.DeliveryMode),
 			Timestamp:       time.Now(),
 			Body:            body,
 		},
@@ -112,6 +134,8 @@ func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
 		s.log.Error("error publishing", slog.String("error", err.Error()))
 		return err
 	}
+
+	s.log.Info("message is published...")
 
 	return nil
 }

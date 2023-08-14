@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
-	"golang.org/x/exp/slog"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
+	"golang.org/x/exp/slog"
 )
 
 var configFile string
@@ -35,7 +36,7 @@ func main() {
 	sender, err := rabbitmq.NewSender(cfg.MQ, logg)
 	if err != nil {
 		cancel()
-		logg.Error("error connecting rabbit",
+		logg.Error("error connecting sender rabbit",
 			slog.String("errors", err.Error()),
 			slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
 	}
@@ -43,7 +44,7 @@ func main() {
 	err = sender.OpenChannel()
 	if err != nil {
 		cancel()
-		logg.Error("error opening channel rabbit",
+		logg.Error("error opening channel sender rabbit",
 			slog.String("errors", err.Error()))
 	}
 
@@ -51,13 +52,13 @@ func main() {
 		<-ctx.Done()
 
 		if err := sender.CloseConn(); err != nil {
-			logg.Error("error closing rabbit connection",
+			logg.Error("error closing rabbit sender connection",
 				slog.String("errors", err.Error()),
 				slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
 		}
 
 		if err := sender.CloseChannel(); err != nil {
-			logg.Error("error closing rabbit channel", slog.String("errors", err.Error()))
+			logg.Error("error closing rabbit sender channel", slog.String("errors", err.Error()))
 		}
 
 		logg.Info("rabbit sender is stopped")
@@ -67,7 +68,7 @@ func main() {
 	err = sender.Consume()
 	if err != nil {
 		cancel()
-		logg.Error("error connecting rabbit",
+		logg.Error("error consuming rabbit",
 			slog.String("errors", err.Error()))
 	}
 
