@@ -10,22 +10,23 @@ import (
 )
 
 var (
-	ErrRabbitSenderEmptyUsername     = errors.New("username cannot be empty")
-	ErrRabbitSenderEmptyPassword     = errors.New("password cannot be empty")
-	ErrRabbitSenderEmptyHost         = errors.New("host cannot be empty")
-	ErrRabbitSenderInvalidPort       = errors.New("port must be between 0 and 65535")
-	ErrRabbitSenderNegativeHeartbeat = errors.New("heartbeat cannot be negative")
-	ErrRabbitSenderEmptyExchangeName = errors.New("exchangeName cannot be empty")
-	ErrRabbitSenderEmptyExchangeType = errors.New("exchangeType cannot be empty")
-	ErrRabbitSenderEmptyQueueName    = errors.New("queueName cannot be empty")
-	ErrRabbitSenderEmptyRoutingKey   = errors.New("routingKey cannot be empty")
-	ErrRabbitSenderEmptyTag          = errors.New("tag cannot be empty")
-	ErrRabbitConfigParseHeartbeat    = errors.New("invalid heartbeat")
+	ErrRabbitSenderEmptyUsername       = errors.New("username cannot be empty")
+	ErrRabbitSenderEmptyPassword       = errors.New("password cannot be empty")
+	ErrRabbitSenderEmptyHost           = errors.New("host cannot be empty")
+	ErrRabbitSenderInvalidPort         = errors.New("port must be between 0 and 65535")
+	ErrRabbitSenderNegativeHeartbeat   = errors.New("heartbeat cannot be negative")
+	ErrRabbitSenderEmptyExchangeName   = errors.New("exchangeName cannot be empty")
+	ErrRabbitSenderEmptyExchangeType   = errors.New("exchangeType cannot be empty")
+	ErrRabbitSenderEmptyQueueName      = errors.New("queueName cannot be empty")
+	ErrRabbitSenderEmptyRoutingKey     = errors.New("routingKey cannot be empty")
+	ErrRabbitSenderEmptyTag            = errors.New("tag cannot be empty")
+	ErrRabbitConfigParseHeartbeat      = errors.New("invalid heartbeat")
+	ErrRabbitSenderInvalidExchangeType = errors.New("invalid exchange type: direct, fanout, headers, topic")
 )
 
 type SenderConfig struct {
-	mq  RabbitConfig
-	log LoggerSenderConfig
+	MQ     RabbitConfig
+	Logger LoggerSenderConfig
 }
 
 type RabbitConfig struct {
@@ -81,8 +82,8 @@ func NewSenderConfig(path string) (*SenderConfig, error) {
 	}
 
 	config := SenderConfig{
-		mq:  rabbitConfig,
-		log: logger,
+		MQ:     rabbitConfig,
+		Logger: logger,
 	}
 
 	return &config, nil
@@ -149,6 +150,10 @@ func validateSenderRabbit(s RabbitConfig) error {
 	}
 	if s.ExchangeType == "" {
 		return ErrRabbitSenderEmptyExchangeType
+	}
+	exchangeTypes := map[string]struct{}{"direct": {}, "fanout": {}, "topic": {}, "headers": {}}
+	if _, ok := exchangeTypes[s.ExchangeType]; !ok {
+		return ErrRabbitSenderInvalidExchangeType
 	}
 	if s.QueueName == "" {
 		return ErrRabbitSenderEmptyQueueName

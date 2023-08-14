@@ -9,6 +9,6 @@ type Message struct {
 }
 
 type Notification struct {
-	msg Message
-	err error
+	Message Message
+	Err     error
 }

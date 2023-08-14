@@ -43,7 +43,6 @@ func (s *Sender) CloseConn() error {
 	s.log.Info("closing sender connection...")
 	err := s.conn.Close()
 	if err != nil {
-		s.log.Error("error closing sender connection", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
@@ -79,7 +78,6 @@ func (s *Sender) CloseChannel() error {
 	s.log.Info("closing sender channel...")
 	err := s.channel.Close()
 	if err != nil {
-		s.log.Error("error closing sender channel", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
@@ -137,30 +135,41 @@ func (s *Sender) Consume() error {
 	return nil
 }
 
-func Handle(ctx context.Context, deliveries <-chan amqp.Delivery) <-chan Notification {
+func (s *Sender) Handle(ctx context.Context) <-chan Notification {
 	messages := make(chan Notification)
-	defer close(messages)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case delivery := <-deliveries:
+			case delivery := <-s.deliveries:
 				var msg Message
+				var notif Notification
 				err := json.Unmarshal(delivery.Body, &msg)
-				notif := Notification{
-					msg: msg,
-					err: err,
+				if err != nil {
+					notif = Notification{
+						Message: Message{},
+						Err:     err,
+					}
+
+					messages <- notif
+					return
 				}
 
 				if err := delivery.Ack(false); err != nil {
 					notif = Notification{
-						msg: Message{},
-						err: err,
+						Message: Message{},
+						Err:     err,
 					}
 
 					messages <- notif
+					return
+				}
+
+				notif = Notification{
+					Message: msg,
+					Err:     nil,
 				}
 
 				messages <- notif
