@@ -2,26 +2,34 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"net"
+	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
 	memorystorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/postgres"
 	"golang.org/x/exp/slog"
 )
 
 var configFile string
+
+var (
+	memSt      = "memory"
+	postgresSt = "postgres"
+)
+
+var ErrInvalidStorageType = errors.New("invalid storage type")
 
 func init() {
 	flag.StringVar(&configFile, "config", "./configs/calendar_config.toml", "Path to configuration file")
@@ -35,12 +43,12 @@ func main() {
 		return
 	}
 
-	cfg, err := config.NewCalendarConfig(configFile)
+	cfg, err := NewConfig(configFile)
 	if err != nil {
 		log.Fatalf("calendar config error: %s", err.Error())
 	}
 
-	logg := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Representation)
+	logg := logger.NewLogger(cfg.Logger)
 
 	logg.Info("use logging")
 
@@ -51,23 +59,27 @@ func main() {
 	var st storage.Storage
 
 	// use memory storage or sql storage
-	switch cfg.Storage.Type {
-	case "memory":
+	switch cfg.StorageType {
+	case memSt:
 		st = memorystorage.NewStorageMemory()
-		logg.Info("use memory storage")
-
-	case "postgres":
-		db, err := sqlstorage.NewPostgresDB(ctx, cfg.Storage.DB)
+		logg.Info("use memory calendar storage")
+	case postgresSt:
+		postgresStorage := postgres.NewStoragePostgres()
+		err = postgresStorage.Connect(ctx, cfg.Storage)
 		if err != nil {
-			logg.Error("errors connecting db",
-				slog.String("errors", err.Error()),
-				slog.String("address", cfg.Storage.DB.Host+":"+cfg.Storage.DB.Port))
-			cancel()
+			logg.Error("error connecting calendar db",
+				slog.String("error", err.Error()),
+				slog.String("address", cfg.Storage.Host+":"+cfg.Storage.Port))
+			os.Exit(1) //nolint:gocritic
 		}
-		defer db.Close()
+		defer postgresStorage.Close()
 
-		logg.Info("use postgres storage")
-		st = sqlstorage.NewStorageSQL(db)
+		st = postgresStorage
+
+		logg.Info("use postgres calendar storage")
+	default:
+		logg.Error("calendar storage", slog.String("error", ErrInvalidStorageType.Error()))
+		os.Exit(1)
 	}
 
 	services := service.NewService(st)
@@ -85,7 +97,7 @@ func main() {
 		defer cancel()
 
 		if err := serverHTTP.Stop(ctx); err != nil {
-			logg.Error("errors stopping HTTPServer",
+			logg.Error("error stopping HTTPServer",
 				slog.String("address http", net.JoinHostPort(cfg.ServerHTTP.Host, cfg.ServerHTTP.Port)))
 			cancel()
 		}
@@ -105,7 +117,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := serverHTTP.Start(); err != nil {
-			logg.Error("errors starting HTTPServer",
+			logg.Error("error starting HTTPServer",
 				slog.String("address http", net.JoinHostPort(cfg.ServerHTTP.Host, cfg.ServerHTTP.Port)))
 			cancel()
 		}
@@ -114,7 +126,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := serverGRPC.Start(cfg.ServerGRPC); err != nil {
-			logg.Error("errors starting GRPCServer",
+			logg.Error("error starting GRPCServer",
 				slog.String("address grpc", net.JoinHostPort(cfg.ServerGRPC.Host, cfg.ServerGRPC.Port)))
 			cancel()
 		}

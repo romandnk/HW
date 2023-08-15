@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"golang.org/x/exp/slog"
@@ -22,12 +21,12 @@ func init() {
 }
 
 func main() {
-	cfg, err := config.NewSenderConfig(configFile)
+	cfg, err := NewConfig(configFile)
 	if err != nil {
 		log.Fatalf("rabbit sender config error: %s", err.Error())
 	}
 
-	logg := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Representation)
+	logg := logger.NewLogger(cfg.Logger)
 
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

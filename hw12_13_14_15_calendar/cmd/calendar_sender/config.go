@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"errors"
@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"github.com/spf13/viper"
 )
 
@@ -22,36 +24,16 @@ var (
 	ErrRabbitSenderEmptyTag             = errors.New("tag cannot be empty")
 	ErrRabbitSenderConfigParseHeartbeat = errors.New("invalid heartbeat")
 	ErrRabbitSenderInvalidExchangeType  = errors.New("invalid exchange type: direct, fanout, headers, topic")
+	ErrLoggerLevel                      = errors.New("invalid logger level")
+	ErrLoggerRepresentation             = errors.New("invalid logger representation")
 )
 
-type SenderConfig struct {
-	MQ     RabbitSenderConfig
-	Logger LoggerSenderConfig
+type Config struct {
+	MQ     rabbitmq.SenderConfig
+	Logger logger.Config
 }
 
-type RabbitSenderConfig struct {
-	Username           string
-	Password           string
-	Host               string
-	Port               int
-	Heartbeat          time.Duration
-	ExchangeName       string
-	ExchangeType       string
-	DurableExchange    bool
-	AutoDeleteExchange bool
-	QueueName          string
-	DurableQueue       bool
-	AutoDeleteQueue    bool
-	RoutingKey         string
-	Tag                string
-}
-
-type LoggerSenderConfig struct {
-	Level          string
-	Representation string
-}
-
-func NewSenderConfig(path string) (*SenderConfig, error) {
+func NewConfig(path string) (*Config, error) {
 	viper.SetConfigFile(path)
 
 	err := viper.ReadInConfig()
@@ -75,21 +57,21 @@ func NewSenderConfig(path string) (*SenderConfig, error) {
 		return nil, err
 	}
 
-	logger := newLoggerSenderConfig()
-	err = validateLoggerSenderConfig(logger)
+	log := newLoggerConfig()
+	err = validateLoggerConfig(log)
 	if err != nil {
 		return nil, err
 	}
 
-	config := SenderConfig{
+	config := Config{
 		MQ:     rabbitConfig,
-		Logger: logger,
+		Logger: log,
 	}
 
 	return &config, nil
 }
 
-func newRabbitSenderConfig() (RabbitSenderConfig, error) {
+func newRabbitSenderConfig() (rabbitmq.SenderConfig, error) {
 	username := viper.GetString("user")
 	password := viper.GetString("password")
 	host := viper.GetString("rabbit_sender.host")
@@ -98,7 +80,7 @@ func newRabbitSenderConfig() (RabbitSenderConfig, error) {
 	heartbeatStr := viper.GetString("rabbit_sender.heartbeat")
 	heartbeat, err := time.ParseDuration(heartbeatStr)
 	if err != nil {
-		return RabbitSenderConfig{}, ErrRabbitSenderConfigParseHeartbeat
+		return rabbitmq.SenderConfig{}, ErrRabbitSenderConfigParseHeartbeat
 	}
 
 	exchangeName := viper.GetString("rabbit_sender.exchange_name")
@@ -111,7 +93,7 @@ func newRabbitSenderConfig() (RabbitSenderConfig, error) {
 	routingKey := viper.GetString("rabbit_sender.routing_key")
 	tag := viper.GetString("rabbit_sender.tag")
 
-	return RabbitSenderConfig{
+	return rabbitmq.SenderConfig{
 		Username:           username,
 		Password:           password,
 		Host:               host,
@@ -129,7 +111,7 @@ func newRabbitSenderConfig() (RabbitSenderConfig, error) {
 	}, nil
 }
 
-func validateRabbitSenderConfig(s RabbitSenderConfig) error {
+func validateRabbitSenderConfig(s rabbitmq.SenderConfig) error {
 	if s.Username == "" {
 		return ErrRabbitSenderEmptyUsername
 	}
@@ -167,16 +149,16 @@ func validateRabbitSenderConfig(s RabbitSenderConfig) error {
 	return nil
 }
 
-func newLoggerSenderConfig() LoggerSenderConfig {
+func newLoggerConfig() logger.Config {
 	level := viper.GetString("logger.level")
 	representation := viper.GetString("logger.representation")
-	return LoggerSenderConfig{
+	return logger.Config{
 		Level:          level,
 		Representation: representation,
 	}
 }
 
-func validateLoggerSenderConfig(l LoggerSenderConfig) error {
+func validateLoggerConfig(l logger.Config) error {
 	loggerLevels := map[string]struct{}{"INFO": {}, "DEBUG": {}, "ERROR": {}, "WARN": {}}
 	if _, ok := loggerLevels[l.Level]; !ok {
 		return ErrLoggerLevel

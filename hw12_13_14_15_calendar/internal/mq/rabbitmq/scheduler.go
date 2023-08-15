@@ -7,21 +7,37 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"golang.org/x/exp/slog"
 )
 
 var ErrSchedulerRabbitNilChannel = errors.New("rabbit scheduler: channel is nil")
 
+type SchedulerConfig struct {
+	Username           string
+	Password           string
+	Host               string
+	Port               int
+	Heartbeat          time.Duration
+	ExchangeName       string
+	QueueName          string
+	ExchangeType       string
+	DurableExchange    bool
+	DurableQueue       bool
+	AutoDeleteExchange bool
+	AutoDeleteQueue    bool
+	RoutingKey         string
+	DeliveryMode       int
+}
+
 type Scheduler struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	log     logger.Logger
-	cfg     config.RabbitSchedulerConfig
+	cfg     SchedulerConfig
 }
 
-func NewScheduler(cfg config.RabbitSchedulerConfig, log logger.Logger) (*Scheduler, error) {
+func NewScheduler(cfg SchedulerConfig, log logger.Logger) (*Scheduler, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,
@@ -74,23 +90,6 @@ func (s *Scheduler) OpenChannel() error {
 		s.log.Error("error declaring scheduler exchange", slog.String("error", err.Error()))
 		return err
 	}
-	return nil
-}
-
-func (s *Scheduler) CloseChannel() error {
-	s.log.Info("closing scheduler channel...")
-	err := s.channel.Close()
-	if err != nil {
-		s.log.Error("error closing scheduler channel", slog.String("error", err.Error()))
-		return err
-	}
-	return nil
-}
-
-func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
-	if s.channel == nil {
-		return ErrSchedulerRabbitNilChannel
-	}
 
 	queue, err := s.channel.QueueDeclare(
 		s.cfg.QueueName,
@@ -115,8 +114,26 @@ func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
 		return err
 	}
 
+	return nil
+}
+
+func (s *Scheduler) CloseChannel() error {
+	s.log.Info("closing scheduler channel...")
+	err := s.channel.Close()
+	if err != nil {
+		s.log.Error("error closing scheduler channel", slog.String("error", err.Error()))
+		return err
+	}
+	return nil
+}
+
+func (s *Scheduler) Publish(ctx context.Context, body []byte) error {
+	if s.channel == nil {
+		return ErrSchedulerRabbitNilChannel
+	}
+
 	s.log.Info("publishing...")
-	err = s.channel.PublishWithContext(
+	err := s.channel.PublishWithContext(
 		ctx,
 		s.cfg.ExchangeName,
 		s.cfg.RoutingKey,

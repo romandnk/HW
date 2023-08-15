@@ -6,7 +6,7 @@ logs_file_path = "./logging/logging.txt"
 [storage]
 type = "postgres"
 
-[storage.database]
+[storage.postgres]
 host = "localhost"
 port  = "5432"
 db_name  = "calendar_db"

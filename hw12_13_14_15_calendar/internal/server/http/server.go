@@ -4,15 +4,21 @@ import (
 	"context"
 	"net"
 	"net/http"
-
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
+	"time"
 )
+
+type Config struct {
+	Host         string
+	Port         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+}
 
 type ServerHTTP struct {
 	srv *http.Server
 }
 
-func NewServerHTTP(cfg config.ServerHTTPConfig, handler http.Handler) *ServerHTTP {
+func NewServerHTTP(cfg Config, handler http.Handler) *ServerHTTP {
 	srv := &http.Server{
 		Addr:           net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:        handler,

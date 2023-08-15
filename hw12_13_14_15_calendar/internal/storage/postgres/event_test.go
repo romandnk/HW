@@ -1,4 +1,4 @@
-package sqlstorage
+package postgres
 
 import (
 	"context"
@@ -44,7 +44,8 @@ func TestStorageCreateEvent(t *testing.T) {
 		event.UserID,
 		event.NotificationInterval).WillReturnResult(pgxmock.NewResult("insert", 1))
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	id, err := storage.CreateEvent(ctx, event)
 
@@ -73,22 +74,23 @@ func TestStorageUpdateEvent(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columnsUpdate := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	rows := pgxmock.NewRows(columnsUpdate).AddRow(event.ID, event.Title, event.Date,
 		event.Duration, event.Description, event.UserID, event.NotificationInterval)
 
 	query := fmt.Sprintf(`
-		UPDATE %s SET 
-        	title = COALESCE($1, title),
-            date = COALESCE($2, date),
-            duration = COALESCE($3, duration),
-            description = COALESCE($4, description),
-            user_id = COALESCE($5, user_id),
-            notification_interval = COALESCE($6, notification_interval)
-        WHERE id = $7 
-        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+		UPDATE %s SET
+       	title = COALESCE($1, title),
+           date = COALESCE($2, date),
+           duration = COALESCE($3, duration),
+           description = COALESCE($4, description),
+           user_id = COALESCE($5, user_id),
+           notification_interval = COALESCE($6, notification_interval)
+       WHERE id = $7
+       RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
 	updatingEvent := checkEmptyFields(event)
 
@@ -126,18 +128,19 @@ func TestStorageUpdateEventError(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	query := fmt.Sprintf(`
-		UPDATE %s SET 
-        	title = COALESCE($1, title),
-            date = COALESCE($2, date),
-            duration = COALESCE($3, duration),
-            description = COALESCE($4, description),
-            user_id = COALESCE($5, user_id),
-            notification_interval = COALESCE($6, notification_interval)
-        WHERE id = $7 
-        RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
+		UPDATE %s SET
+       	title = COALESCE($1, title),
+           date = COALESCE($2, date),
+           duration = COALESCE($3, duration),
+           description = COALESCE($4, description),
+           user_id = COALESCE($5, user_id),
+           notification_interval = COALESCE($6, notification_interval)
+       WHERE id = $7
+       RETURNING id, title, date, duration, description, user_id, notification_interval`, eventsTable)
 
 	updatingEvent := checkEmptyFields(event)
 
@@ -167,7 +170,8 @@ func TestStorageDeleteEvent(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	queryDelete := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
@@ -188,7 +192,8 @@ func TestStorageDeleteEventError(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	queryDelete := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
@@ -231,7 +236,8 @@ func TestStorageGetAllByDayEvents(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns).
@@ -264,7 +270,8 @@ func TestStorageGetAllByDayEventsEmpty(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns)
@@ -314,7 +321,8 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns).
@@ -346,7 +354,8 @@ func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns)
@@ -404,7 +413,8 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns).
@@ -437,7 +447,8 @@ func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
 
 	ctx := context.Background()
 
-	storage := NewStorageSQL(mock)
+	storage := NewStoragePostgres()
+	storage.db = mock
 
 	columns := []string{"id", "title", "date", "duration", "description", "user_id", "notification_interval"}
 	expectedRows := pgxmock.NewRows(columns)

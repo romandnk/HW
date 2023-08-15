@@ -5,24 +5,41 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/cmd/config"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"golang.org/x/exp/slog"
 )
 
 var ErrSenderRabbitNilChannel = errors.New("rabbit sender: channel is nil")
 
+type SenderConfig struct {
+	Username           string
+	Password           string
+	Host               string
+	Port               int
+	Heartbeat          time.Duration
+	ExchangeName       string
+	ExchangeType       string
+	DurableExchange    bool
+	AutoDeleteExchange bool
+	QueueName          string
+	DurableQueue       bool
+	AutoDeleteQueue    bool
+	RoutingKey         string
+	Tag                string
+}
+
 type Sender struct {
 	conn       *amqp.Connection
 	channel    *amqp.Channel
 	deliveries <-chan amqp.Delivery
 	log        logger.Logger
-	cfg        config.RabbitSenderConfig
+	cfg        SenderConfig
 }
 
-func NewSender(cfg config.RabbitSenderConfig, log logger.Logger) (*Sender, error) {
+func NewSender(cfg SenderConfig, log logger.Logger) (*Sender, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,

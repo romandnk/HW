@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"errors"
@@ -8,6 +8,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv" //nolint:depguard
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
+	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/postgres"
 	"github.com/spf13/viper"
 )
 
@@ -21,7 +25,6 @@ var (
 	ErrHTTPServerPortWrongNumber              = errors.New("serverHTTP port must be in the interval from 0 to 65535")
 	ErrParseHTTPServerReadTimeout             = errors.New("invalid serverHTTP read timeout")
 	ErrParseHTTPServerWriteTimeout            = errors.New("invalid serverHTTP write timeout")
-	ErrInvalidStorageType                     = errors.New("invalid storage type")
 	ErrDBHost                                 = errors.New("database host must not be empty")
 	ErrDBPortNotNumber                        = errors.New("database port must be a number")
 	ErrDBPortWrongNumber                      = errors.New("database port must be in the interval from 0 to 65535")
@@ -44,61 +47,19 @@ var (
 	ErrGRPCServerMaxConnectionIdleNotPositive = errors.New("serverGRPC max connection idle cannot be negative")
 	ErrGRPCServerTimeoutNotPositive           = errors.New("serverGRPC timeout cannot be negative")
 	ErrGRPCServerTimeNotPositive              = errors.New("serverGRPC time cannot be negative")
+	ErrGRPCServerHost                         = errors.New("serverGRPC host must not be empty")
+	ErrGRPCServerPortWrongNumber              = errors.New("serverGRPC port must be a number")
 )
 
-var (
-	memStorage      = "memory"
-	postgresStorage = "postgres"
-)
-
-type CalendarConfig struct {
-	Logger     LoggerCalendarConfig
-	ServerHTTP ServerHTTPConfig
-	ServerGRPC ServerGRPCConfig
-	Storage    StorageConfig
+type Config struct {
+	Logger      logger.Config
+	ServerHTTP  internalhttp.Config
+	ServerGRPC  grpc.Config
+	StorageType string
+	Storage     postgres.Config
 }
 
-type LoggerCalendarConfig struct {
-	Level          string
-	Representation string
-	LogFilePath    string
-}
-
-type ServerHTTPConfig struct {
-	Host         string
-	Port         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-}
-
-type ServerGRPCConfig struct {
-	Host              string
-	Port              string
-	MaxConnectionIdle time.Duration
-	MaxConnectionAge  time.Duration
-	Time              time.Duration
-	Timeout           time.Duration
-}
-
-type StorageConfig struct {
-	Type string
-	DB   DBConfig
-}
-
-type DBConfig struct {
-	Host            string
-	Port            string
-	Username        string
-	Password        string
-	DBName          string
-	SSLMode         string
-	MaxConns        int           // max connections in the pool
-	MinConns        int           // min connections in the pool which must be opened
-	MaxConnLifetime time.Duration // time after which db conn will be removed from the pool if there was no active use.
-	MaxConnIdleTime time.Duration // time after which an inactive connection in the pool will be closed and deleted.
-}
-
-func NewCalendarConfig(path string) (*CalendarConfig, error) {
+func NewConfig(path string) (*Config, error) {
 	viper.SetConfigFile(path) // find config file with specific path
 
 	err := viper.ReadInConfig() // read config file
@@ -113,77 +74,80 @@ func NewCalendarConfig(path string) (*CalendarConfig, error) {
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password
 	viper.AutomaticEnv()           // read env variables
 
-	logger := newLoggerCalendarConf()
-	err = validateCalendarLogger(logger)
+	log := newLoggerConfig()
+	err = validateLoggerConfig(log)
 	if err != nil {
 		return nil, err
 	}
 
-	serverHTTP, err := newServerHTTPConf()
+	serverHTTP, err := newServerHTTPConfig()
 	if err != nil {
 		return nil, err
 	}
-	err = validateServerHTTP(serverHTTP)
-	if err != nil {
-		return nil, err
-	}
-
-	serverGRPC, err := newServerGRPCConf()
-	if err != nil {
-		return nil, err
-	}
-	err = validateServerGRPC(serverGRPC)
+	err = validateServerHTTPConfig(serverHTTP)
 	if err != nil {
 		return nil, err
 	}
 
-	storage, err := newStorageConf()
+	serverGRPC, err := newServerGRPCConfig()
 	if err != nil {
 		return nil, err
 	}
-	err = validateStorage(storage)
+	err = validateServerGRPCConfig(serverGRPC)
 	if err != nil {
 		return nil, err
 	}
 
-	config := CalendarConfig{
-		Logger:     logger,
-		ServerHTTP: serverHTTP,
-		ServerGRPC: serverGRPC,
-		Storage:    storage,
+	storage, err := newStoragePostgresConfig()
+	if err != nil {
+		return nil, err
+	}
+	err = validateStoragePostgresConfig(storage)
+	if err != nil {
+		return nil, err
+	}
+
+	storageType := viper.GetString("storage.type")
+
+	config := Config{
+		Logger:      log,
+		ServerHTTP:  serverHTTP,
+		ServerGRPC:  serverGRPC,
+		StorageType: storageType,
+		Storage:     storage,
 	}
 
 	return &config, nil
 }
 
-func newLoggerCalendarConf() LoggerCalendarConfig {
+func newLoggerConfig() logger.Config {
 	level := viper.GetString("logger.level")
 	representation := viper.GetString("logger.representation")
 	lofFilePath := viper.GetString("logger.logs_file_path")
-	return LoggerCalendarConfig{
+	return logger.Config{
 		Level:          level,
 		Representation: representation,
 		LogFilePath:    lofFilePath,
 	}
 }
 
-func newServerHTTPConf() (ServerHTTPConfig, error) {
+func newServerHTTPConfig() (internalhttp.Config, error) {
 	host := viper.GetString("server_http.host")
 	port := viper.GetString("server_http.port")
 
 	readTimeoutStr := viper.GetString("server_http.read_timeout")
 	readTimeout, err := time.ParseDuration(readTimeoutStr)
 	if err != nil {
-		return ServerHTTPConfig{}, ErrParseHTTPServerReadTimeout
+		return internalhttp.Config{}, ErrParseHTTPServerReadTimeout
 	}
 
 	writeTimeoutStr := viper.GetString("server_http.write_timeout")
 	writeTimeout, err := time.ParseDuration(writeTimeoutStr)
 	if err != nil {
-		return ServerHTTPConfig{}, ErrParseHTTPServerWriteTimeout
+		return internalhttp.Config{}, ErrParseHTTPServerWriteTimeout
 	}
 
-	return ServerHTTPConfig{
+	return internalhttp.Config{
 		Host:         host,
 		Port:         port,
 		ReadTimeout:  readTimeout,
@@ -191,35 +155,35 @@ func newServerHTTPConf() (ServerHTTPConfig, error) {
 	}, nil
 }
 
-func newServerGRPCConf() (ServerGRPCConfig, error) {
+func newServerGRPCConfig() (grpc.Config, error) {
 	host := viper.GetString("server_grpc.host")
 	port := viper.GetString("server_grpc.port")
 
 	maxConnectionIdleStr := viper.GetString("server_grpc.max_connection_idle")
 	maxConnectionIdle, err := time.ParseDuration(maxConnectionIdleStr)
 	if err != nil {
-		return ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionIdle
+		return grpc.Config{}, ErrParseGRPCServerMaxConnectionIdle
 	}
 
 	maxConnectionAgeStr := viper.GetString("server_grpc.max_connection_age")
 	maxConnectionAge, err := time.ParseDuration(maxConnectionAgeStr)
 	if err != nil {
-		return ServerGRPCConfig{}, ErrParseGRPCServerMaxConnectionAge
+		return grpc.Config{}, ErrParseGRPCServerMaxConnectionAge
 	}
 
 	timeStr := viper.GetString("server_grpc.time")
 	parsedTime, err := time.ParseDuration(timeStr)
 	if err != nil {
-		return ServerGRPCConfig{}, ErrParseGRPCServerTime
+		return grpc.Config{}, ErrParseGRPCServerTime
 	}
 
 	timeoutStr := viper.GetString("server_grpc.timeout")
 	timeout, err := time.ParseDuration(timeoutStr)
 	if err != nil {
-		return ServerGRPCConfig{}, ErrParseGRPCServerTimeout
+		return grpc.Config{}, ErrParseGRPCServerTimeout
 	}
 
-	return ServerGRPCConfig{
+	return grpc.Config{
 		Host:              host,
 		Port:              port,
 		MaxConnectionIdle: maxConnectionIdle,
@@ -229,57 +193,41 @@ func newServerGRPCConf() (ServerGRPCConfig, error) {
 	}, nil
 }
 
-func newStorageConf() (StorageConfig, error) {
-	storageType := viper.GetString("storage.type")
-	switch storageType {
-	case memStorage:
-		return StorageConfig{
-			Type: memStorage,
-		}, nil
-	case postgresStorage:
-		host := viper.GetString("storage.database.host")
-		port := viper.GetString("storage.database.port")
-		username := viper.GetString("DB_USER")
-		password := viper.GetString("DB_PASSWORD")
-		dbName := viper.GetString("storage.database.db_name")
-		sslmode := viper.GetString("storage.database.sslmode")
-		maxConns := viper.GetInt("storage.database.max_conns")
-		minConns := viper.GetInt("storage.database.min_conns")
+func newStoragePostgresConfig() (postgres.Config, error) {
+	host := viper.GetString("storage.postgres.host")
+	port := viper.GetString("storage.postgres.port")
+	username := viper.GetString("DB_USER")
+	password := viper.GetString("DB_PASSWORD")
+	dbName := viper.GetString("storage.postgres.db_name")
+	sslmode := viper.GetString("storage.postgres.sslmode")
+	maxConns := viper.GetInt("storage.postgres.max_conns")
+	minConns := viper.GetInt("storage.postgres.min_conns")
 
-		maxConnLifetimeStr := viper.GetString("storage.database.max_conn_lifetime")
-		maxConnLifetime, err := time.ParseDuration(maxConnLifetimeStr)
-		if err != nil {
-			return StorageConfig{}, ErrParseMaxConnLifetime
-		}
-
-		maxConnIdleTimeStr := viper.GetString("storage.database.max_conn_idle_time")
-		maxConnIdleTime, err := time.ParseDuration(maxConnIdleTimeStr)
-		if err != nil {
-			return StorageConfig{}, ErrParseMaxConnIdleTime
-		}
-
-		DBconf := DBConfig{
-			Host:            host,
-			Port:            port,
-			Username:        username,
-			Password:        password,
-			DBName:          dbName,
-			SSLMode:         sslmode,
-			MaxConns:        maxConns,
-			MinConns:        minConns,
-			MaxConnLifetime: maxConnLifetime,
-			MaxConnIdleTime: maxConnIdleTime,
-		}
-		return StorageConfig{
-			Type: postgresStorage,
-			DB:   DBconf,
-		}, nil
-	default:
-		return StorageConfig{}, ErrInvalidStorageType
+	maxConnLifetimeStr := viper.GetString("storage.postgres.max_conn_lifetime")
+	maxConnLifetime, err := time.ParseDuration(maxConnLifetimeStr)
+	if err != nil {
+		return postgres.Config{}, ErrParseMaxConnLifetime
 	}
+	maxConnIdleTimeStr := viper.GetString("storage.postgres.max_conn_idle_time")
+	maxConnIdleTime, err := time.ParseDuration(maxConnIdleTimeStr)
+	if err != nil {
+		return postgres.Config{}, ErrParseMaxConnIdleTime
+	}
+	return postgres.Config{
+		Host:            host,
+		Port:            port,
+		Username:        username,
+		Password:        password,
+		DBName:          dbName,
+		SSLMode:         sslmode,
+		MaxConns:        maxConns,
+		MinConns:        minConns,
+		MaxConnLifetime: maxConnLifetime,
+		MaxConnIdleTime: maxConnIdleTime,
+	}, nil
 }
 
-func validateCalendarLogger(l LoggerCalendarConfig) error {
+func validateLoggerConfig(l logger.Config) error {
 	loggerLevels := map[string]struct{}{"INFO": {}, "DEBUG": {}, "ERROR": {}, "WARN": {}}
 	if _, ok := loggerLevels[l.Level]; !ok {
 		return ErrLoggerLevel
@@ -302,7 +250,7 @@ func validateCalendarLogger(l LoggerCalendarConfig) error {
 	return nil
 }
 
-func validateServerHTTP(s ServerHTTPConfig) error {
+func validateServerHTTPConfig(s internalhttp.Config) error {
 	if s.Host == "" {
 		return ErrHTTPServerHost
 	}
@@ -323,16 +271,16 @@ func validateServerHTTP(s ServerHTTPConfig) error {
 	return nil
 }
 
-func validateServerGRPC(s ServerGRPCConfig) error {
+func validateServerGRPCConfig(s grpc.Config) error {
 	if s.Host == "" {
-		return ErrHTTPServerHost
+		return ErrGRPCServerHost
 	}
 	port, err := strconv.Atoi(s.Port)
 	if err != nil {
-		return ErrHTTPServerPortNotNumber
+		return err
 	}
 	if port < 0 || port > 65535 {
-		return ErrHTTPServerPortWrongNumber
+		return ErrGRPCServerPortWrongNumber
 	}
 	if s.MaxConnectionAge < 0 {
 		return ErrGRPCServerMaxConnectionAgeNotPositive
@@ -350,41 +298,38 @@ func validateServerGRPC(s ServerGRPCConfig) error {
 	return nil
 }
 
-func validateStorage(st StorageConfig) error {
-	if st.Type == postgresStorage { //nolint:nestif
-		if st.DB.Host == "" {
-			return ErrDBHost
-		}
-		port, err := strconv.Atoi(st.DB.Port)
-		if err != nil {
-			return ErrDBPortNotNumber
-		}
-		if port < 0 || port > 65535 {
-			return ErrDBPortWrongNumber
-		}
-
-		if st.DB.DBName == "" {
-			return ErrDBInvalidDBName
-		}
-		sslTypes := map[string]struct{}{"disable": {}, "verify-ca": {}, "require": {}, "verify-full": {}}
-		if _, ok := sslTypes[st.DB.SSLMode]; !ok {
-			return ErrDBInvalidSSLMode
-		}
-		if st.DB.MaxConns <= 0 {
-			return ErrDBMaxConns
-		}
-		if st.DB.MinConns <= 0 {
-			return ErrDBMinConns
-		}
-		if st.DB.MaxConns < st.DB.MinConns {
-			return ErrDBIncompatibleMaxAndMinConns
-		}
-		if st.DB.MaxConnLifetime <= 0 {
-			return ErrDBMaxConnLifetimeNotPositive
-		}
-		if st.DB.MaxConnIdleTime <= 0 {
-			return ErrDBMaxConnIdleTimeNotPositive
-		}
+func validateStoragePostgresConfig(st postgres.Config) error {
+	if st.Host == "" {
+		return ErrDBHost
+	}
+	port, err := strconv.Atoi(st.Port)
+	if err != nil {
+		return ErrDBPortNotNumber
+	}
+	if port < 0 || port > 65535 {
+		return ErrDBPortWrongNumber
+	}
+	if st.DBName == "" {
+		return ErrDBInvalidDBName
+	}
+	sslTypes := map[string]struct{}{"disable": {}, "verify-ca": {}, "require": {}, "verify-full": {}}
+	if _, ok := sslTypes[st.SSLMode]; !ok {
+		return ErrDBInvalidSSLMode
+	}
+	if st.MaxConns <= 0 {
+		return ErrDBMaxConns
+	}
+	if st.MinConns <= 0 {
+		return ErrDBMinConns
+	}
+	if st.MaxConns < st.MinConns {
+		return ErrDBIncompatibleMaxAndMinConns
+	}
+	if st.MaxConnLifetime <= 0 {
+		return ErrDBMaxConnLifetimeNotPositive
+	}
+	if st.MaxConnIdleTime <= 0 {
+		return ErrDBMaxConnIdleTimeNotPositive
 	}
 
 	return nil
