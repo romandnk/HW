@@ -100,6 +100,7 @@ func NewSender(cfg SenderConfig, log logger.Logger) (*Sender, error) {
 		channel: ch,
 		log:     log,
 		cfg:     cfg,
+		done:    make(chan struct{}),
 	}, nil
 }
 
