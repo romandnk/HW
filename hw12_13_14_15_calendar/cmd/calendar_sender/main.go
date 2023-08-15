@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -34,49 +33,28 @@ func main() {
 
 	sender, err := rabbitmq.NewSender(cfg.MQ, logg)
 	if err != nil {
-		cancel()
-		logg.Error("error connecting sender rabbit",
-			slog.String("errors", err.Error()),
+		logg.Error("error creating rabbit sender",
+			slog.String("error", err.Error()),
 			slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
-	}
-
-	err = sender.OpenChannel()
-	if err != nil {
 		cancel()
-		logg.Error("error opening channel sender rabbit",
-			slog.String("errors", err.Error()))
 	}
 
 	go func() {
 		<-ctx.Done()
 
-		if err := sender.CloseConn(); err != nil {
-			logg.Error("error closing rabbit sender connection",
-				slog.String("errors", err.Error()),
+		if err := sender.Shutdown(); err != nil {
+			logg.Error("error stopping rabbit sender",
+				slog.String("error", err.Error()),
 				slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
 		}
 
-		if err := sender.CloseChannel(); err != nil {
-			logg.Error("error closing rabbit sender channel", slog.String("errors", err.Error()))
-		}
-
 		logg.Info("rabbit sender is stopped")
-		os.Exit(0)
 	}()
 
 	err = sender.Consume()
 	if err != nil {
-		cancel()
 		logg.Error("error consuming rabbit",
 			slog.String("errors", err.Error()))
-	}
-
-	for notification := range sender.Handle(ctx) {
-		if notification.Err != nil {
-			logg.Error("error receiving notification", slog.String("error", notification.Err.Error()))
-			continue
-		}
-		logg.Info("received notification",
-			slog.Any("notification", notification.Message))
+		cancel()
 	}
 }
