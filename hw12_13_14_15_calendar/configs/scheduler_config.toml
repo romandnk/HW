@@ -30,5 +30,5 @@ routing_key = "notification"
 delivery_mode     = 2
 
 [general_preferences]
-time_to_schedule = "5h"
-time_to_delete_outdated = "1s"
+time_to_schedule = "5s"
+time_to_delete_outdated = "1h"

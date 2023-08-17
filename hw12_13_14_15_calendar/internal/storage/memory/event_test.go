@@ -123,6 +123,26 @@ func TestStorageDeleteEventError(t *testing.T) {
 	require.Len(t, st.events, 100, "must be full")
 }
 
+func TestStorageDeleteOutdatedEvents(t *testing.T) {
+	st := NewStorageMemory()
+	ctx := context.Background()
+
+	st.events["id1"] = models.Event{
+		Date: time.Date(2022, 1, 1, 0, 0, 0, 0, time.Local),
+	}
+	st.events["id2"] = models.Event{
+		Date: time.Date(2023, 1, 1, 0, 0, 0, 0, time.Local),
+	}
+	st.events["id3"] = models.Event{
+		Date: time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local),
+	}
+
+	err := st.DeleteOutdatedEvents(ctx)
+	require.NoError(t, err)
+
+	require.Len(t, st.events, 1)
+}
+
 func TestStorageGetAllByDayEvents(t *testing.T) {
 	testCases := []struct {
 		day       time.Time

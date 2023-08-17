@@ -34,11 +34,11 @@ func (s *Storage) GetNotificationInAdvance(ctx context.Context) ([]models.Notifi
 				Date:    event.Date,
 				UserID:  event.UserID,
 			}
-
-			event.Scheduled = true
 		}
 
 		if notification.EventID != "" {
+			event.Scheduled = true
+			s.events[event.ID] = event
 			notifications = append(notifications, notification)
 		}
 	}
