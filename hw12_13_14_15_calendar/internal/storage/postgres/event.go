@@ -12,12 +12,12 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-func (p *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
+func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	query := fmt.Sprintf(`
 		INSERT INTO %s (id, title, date, duration, description, user_id, notification_interval)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`, eventsTable)
 
-	ct, err := p.db.Exec(ctx, query,
+	ct, err := s.db.Exec(ctx, query,
 		event.ID,
 		event.Title,
 		event.Date,
@@ -51,7 +51,7 @@ type eventForUpdate struct {
 	NotificationInterval sql.NullString
 }
 
-func (p *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
+func (s *Storage) UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error) {
 	var updatedEvent models.Event
 
 	query := fmt.Sprintf(`
@@ -67,7 +67,7 @@ func (p *Storage) UpdateEvent(ctx context.Context, id string, event models.Event
 
 	eventUpdating := checkEmptyFields(event)
 
-	err := p.db.QueryRow(ctx, query,
+	err := s.db.QueryRow(ctx, query,
 		eventUpdating.Title,
 		eventUpdating.Date,
 		eventUpdating.Duration,
@@ -121,10 +121,10 @@ func checkEmptyFields(event models.Event) eventForUpdate {
 	}
 }
 
-func (p *Storage) DeleteEvent(ctx context.Context, id string) error {
+func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE id = $1`, eventsTable)
 
-	result, err := p.db.Exec(ctx, query, id)
+	result, err := s.db.Exec(ctx, query, id)
 	if err != nil {
 		return customerror.CustomError{
 			Field:   "",
@@ -144,8 +144,24 @@ func (p *Storage) DeleteEvent(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *Storage) DeleteOutdatedEvents(ctx context.Context) error {
+	now := time.Now().Format(time.RFC3339Nano)
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1::timestamp - interval '1 year'`, eventsTable)
+
+	_, err := s.db.Exec(ctx, query, now)
+	if err != nil {
+		return customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
+		}
+	}
+
+	return nil
+}
+
 //nolint:dupl
-func (p *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`
@@ -153,7 +169,7 @@ func (p *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 		FROM %s 
 		WHERE date = $1`, eventsTable)
 
-	rows, err := p.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
@@ -187,7 +203,7 @@ func (p *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 }
 
 //nolint:dupl
-func (p *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`
@@ -195,7 +211,7 @@ func (p *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 		FROM %s 
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
 
-	rows, err := p.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
@@ -229,7 +245,7 @@ func (p *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 }
 
 //nolint:dupl
-func (p *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
+func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	var events []models.Event
 
 	query := fmt.Sprintf(`
@@ -237,7 +253,7 @@ func (p *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 		FROM %s 
 		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
 
-	rows, err := p.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date)
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",

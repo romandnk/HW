@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -34,6 +34,7 @@ func init() {
 	flag.StringVar(&configFile, "config", "./configs/scheduler_config.toml", "Path to configuration file")
 }
 
+//nolint:gocognit
 func main() {
 	cfg, err := NewConfig(configFile)
 	if err != nil {
@@ -72,9 +73,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = service.NewService(st)
+	services := service.NewService(st)
 
-	scheduler, err := rabbitmq.NewScheduler(cfg.MQ, logg)
+	scheduler, err := rabbitmq.NewProducer(cfg.MQ, logg)
 	if err != nil {
 		cancel()
 		logg.Error("error connecting scheduler rabbit",
@@ -82,34 +83,69 @@ func main() {
 			slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
 	}
 
-	err = scheduler.OpenChannel()
-	if err != nil {
-		cancel()
-		logg.Error("error opening channel scheduler rabbit",
-			slog.String("errors", err.Error()))
-	}
+	tickerScheduler := time.NewTicker(cfg.TimeToSchedule)
+	tickerDeleteOutdated := time.NewTicker(cfg.TimeToDeleteOutdated)
+	done := make(chan struct{})
+
+	go func() {
+		<-ctx.Done()
+
+		if err := scheduler.Shutdown(); err != nil {
+			logg.Error("error stopping rabbit scheduler",
+				slog.String("error", err.Error()),
+				slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
+		}
+
+		done <- struct{}{}
+
+		logg.Info("rabbit sender is stopped")
+	}()
 
 	for {
 		select {
-		case <-ctx.Done():
-			if err := scheduler.CloseChannel(); err != nil {
-				logg.Error("error closing rabbit scheduler channel", slog.String("errors", err.Error()))
+		case <-tickerScheduler.C:
+			notifications, err := services.Notification.GetNotificationInAdvance(ctx)
+			if err != nil {
+				logg.Error("error getting notification", slog.String("error", err.Error()))
 			}
 
-			if err := scheduler.CloseConn(); err != nil {
-				logg.Error("error closing rabbit scheduler connection",
-					slog.String("errors", err.Error()),
-					slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
-			}
+			now := time.Now()
 
-			logg.Info("rabbit scheduler is stopped")
+			for _, notification := range notifications {
+				notificationMessageDate := notification.Date
+
+				if !(notificationMessageDate.Before(now.Add(-time.Second*5)) && notificationMessageDate.After(now.Add(time.Second*5))) {
+					continue
+				}
+
+				msg := rabbitmq.Message{
+					EventID: notification.EventID,
+					Title:   notification.Title,
+					Date:    notification.Date,
+					UserID:  notification.UserID,
+				}
+
+				body, err := json.Marshal(msg)
+				if err != nil {
+					logg.Error("error marshal notification",
+						slog.Any("notification", msg),
+						slog.String("error", err.Error()))
+				}
+
+				err = scheduler.Publish(ctx, body)
+				if err != nil {
+					logg.Error("error publish notification",
+						slog.Any("notification", msg),
+						slog.String("error", err.Error()))
+				}
+			}
+		case <-tickerDeleteOutdated.C:
+			err := services.Event.DeleteOutdatedEvents(ctx)
+			if err != nil {
+				logg.Error("error deleting outdated events", slog.String("error", err.Error()))
+			}
+		case <-done:
 			return
-		default:
-
-			// TODO: notification logic
-
-			time.Sleep(time.Second * 2)
-			fmt.Println("1")
 		}
 	}
 }

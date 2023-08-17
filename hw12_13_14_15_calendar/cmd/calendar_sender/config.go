@@ -29,7 +29,7 @@ var (
 )
 
 type Config struct {
-	MQ     rabbitmq.SenderConfig
+	MQ     rabbitmq.ConsumerConfig
 	Logger logger.Config
 }
 
@@ -71,7 +71,7 @@ func NewConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
-func newRabbitSenderConfig() (rabbitmq.SenderConfig, error) {
+func newRabbitSenderConfig() (rabbitmq.ConsumerConfig, error) {
 	username := viper.GetString("user")
 	password := viper.GetString("password")
 	host := viper.GetString("rabbit_sender.host")
@@ -80,7 +80,7 @@ func newRabbitSenderConfig() (rabbitmq.SenderConfig, error) {
 	heartbeatStr := viper.GetString("rabbit_sender.heartbeat")
 	heartbeat, err := time.ParseDuration(heartbeatStr)
 	if err != nil {
-		return rabbitmq.SenderConfig{}, ErrRabbitSenderConfigParseHeartbeat
+		return rabbitmq.ConsumerConfig{}, ErrRabbitSenderConfigParseHeartbeat
 	}
 
 	exchangeName := viper.GetString("rabbit_sender.exchange_name")
@@ -93,7 +93,7 @@ func newRabbitSenderConfig() (rabbitmq.SenderConfig, error) {
 	routingKey := viper.GetString("rabbit_sender.routing_key")
 	tag := viper.GetString("rabbit_sender.tag")
 
-	return rabbitmq.SenderConfig{
+	return rabbitmq.ConsumerConfig{
 		Username:           username,
 		Password:           password,
 		Host:               host,
@@ -111,7 +111,7 @@ func newRabbitSenderConfig() (rabbitmq.SenderConfig, error) {
 	}, nil
 }
 
-func validateRabbitSenderConfig(s rabbitmq.SenderConfig) error {
+func validateRabbitSenderConfig(s rabbitmq.ConsumerConfig) error {
 	if s.Username == "" {
 		return ErrRabbitSenderEmptyUsername
 	}

@@ -43,10 +43,12 @@ var (
 )
 
 type Config struct {
-	MQ          rabbitmq.SchedulerConfig
-	Logger      logger.Config
-	StorageType string
-	Storage     postgres.Config
+	MQ                   rabbitmq.ProducerConfig
+	Logger               logger.Config
+	StorageType          string
+	Storage              postgres.Config
+	TimeToSchedule       time.Duration
+	TimeToDeleteOutdated time.Duration
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -90,17 +92,31 @@ func NewConfig(path string) (*Config, error) {
 
 	storageType := viper.GetString("storage.type")
 
+	timeToScheduleStr := viper.GetString("general_preferences.time_to_schedule")
+	timeToSchedule, err := time.ParseDuration(timeToScheduleStr)
+	if err != nil {
+		return nil, err
+	}
+
+	timeToDeleteOutdatedStr := viper.GetString("general_preferences.time_to_delete_outdated")
+	timeToDeleteOutdated, err := time.ParseDuration(timeToDeleteOutdatedStr)
+	if err != nil {
+		return nil, err
+	}
+
 	config := Config{
-		MQ:          rabbitConfig,
-		Logger:      log,
-		StorageType: storageType,
-		Storage:     storage,
+		MQ:                   rabbitConfig,
+		Logger:               log,
+		StorageType:          storageType,
+		Storage:              storage,
+		TimeToSchedule:       timeToSchedule,
+		TimeToDeleteOutdated: timeToDeleteOutdated,
 	}
 
 	return &config, nil
 }
 
-func newRabbitSchedulerConfig() (rabbitmq.SchedulerConfig, error) {
+func newRabbitSchedulerConfig() (rabbitmq.ProducerConfig, error) {
 	username := viper.GetString("rabbit_user")
 	password := viper.GetString("rabbit_password")
 	host := viper.GetString("rabbit_scheduler.host")
@@ -109,7 +125,7 @@ func newRabbitSchedulerConfig() (rabbitmq.SchedulerConfig, error) {
 	heartbeatStr := viper.GetString("rabbit_scheduler.heartbeat")
 	heartbeat, err := time.ParseDuration(heartbeatStr)
 	if err != nil {
-		return rabbitmq.SchedulerConfig{}, ErrRabbitSchedulerParseHeartbeat
+		return rabbitmq.ProducerConfig{}, ErrRabbitSchedulerParseHeartbeat
 	}
 
 	exchangeName := viper.GetString("rabbit_scheduler.exchange_name")
@@ -122,7 +138,7 @@ func newRabbitSchedulerConfig() (rabbitmq.SchedulerConfig, error) {
 	routingKey := viper.GetString("rabbit_scheduler.routing_key")
 	deliveryMode := viper.GetInt("rabbit_scheduler.delivery_mode")
 
-	return rabbitmq.SchedulerConfig{
+	return rabbitmq.ProducerConfig{
 		Username:           username,
 		Password:           password,
 		Host:               host,
@@ -140,7 +156,7 @@ func newRabbitSchedulerConfig() (rabbitmq.SchedulerConfig, error) {
 	}, nil
 }
 
-func validateRabbitSchedulerConfig(s rabbitmq.SchedulerConfig) error {
+func validateRabbitSchedulerConfig(s rabbitmq.ProducerConfig) error {
 	if s.Username == "" {
 		return ErrRabbitSchedulerEmptyUsername
 	}

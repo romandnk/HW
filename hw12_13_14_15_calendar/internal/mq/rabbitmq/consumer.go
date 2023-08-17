@@ -13,7 +13,7 @@ import (
 
 var ErrSenderRabbitNilChannel = errors.New("rabbit sender: channel is nil")
 
-type SenderConfig struct {
+type ConsumerConfig struct {
 	Username           string
 	Password           string
 	Host               string
@@ -30,15 +30,15 @@ type SenderConfig struct {
 	Tag                string
 }
 
-type Sender struct {
+type Consumer struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	log     logger.Logger
-	cfg     SenderConfig
+	cfg     ConsumerConfig
 	done    chan struct{}
 }
 
-func NewSender(cfg SenderConfig, log logger.Logger) (*Sender, error) {
+func NewSender(cfg ConsumerConfig, log logger.Logger) (*Consumer, error) {
 	url := fmt.Sprintf("amqp://%s:%s@%s:%d/", cfg.Username, cfg.Password, cfg.Host, cfg.Port)
 	conf := amqp.Config{
 		Heartbeat: cfg.Heartbeat,
@@ -95,7 +95,7 @@ func NewSender(cfg SenderConfig, log logger.Logger) (*Sender, error) {
 		return nil, err
 	}
 
-	return &Sender{
+	return &Consumer{
 		conn:    conn,
 		channel: ch,
 		log:     log,
@@ -104,15 +104,15 @@ func NewSender(cfg SenderConfig, log logger.Logger) (*Sender, error) {
 	}, nil
 }
 
-func (s *Sender) Consume() error {
-	if s.channel == nil {
+func (c *Consumer) Consume() error {
+	if c.channel == nil {
 		return ErrSenderRabbitNilChannel
 	}
 
-	s.log.Info("starting consuming...")
-	deliveries, err := s.channel.Consume(
-		s.cfg.QueueName,
-		s.cfg.Tag,
+	c.log.Info("starting consuming...")
+	deliveries, err := c.channel.Consume(
+		c.cfg.QueueName,
+		c.cfg.Tag,
 		false,
 		false,
 		false,
@@ -120,17 +120,17 @@ func (s *Sender) Consume() error {
 		nil,
 	)
 	if err != nil {
-		s.log.Error("error while starting consuming", slog.String("error", err.Error()))
+		c.log.Error("error while starting consuming", slog.String("error", err.Error()))
 		return err
 	}
 
-	notifications := make(chan Notification)
+	notifications := make(chan Notification, 10)
 
-	go handle(deliveries, notifications, s.done)
+	go handle(deliveries, notifications, c.done)
 
 	for {
 		select {
-		case <-s.done:
+		case <-c.done:
 			close(notifications)
 			return nil
 		case notification, ok := <-notifications:
@@ -139,22 +139,22 @@ func (s *Sender) Consume() error {
 			}
 
 			if notification.Err != nil {
-				s.log.Error("error receiving notification", slog.String("error", notification.Err.Error()))
+				c.log.Error("error receiving notification", slog.String("error", notification.Err.Error()))
 				continue
 			}
-			s.log.Info("notification is received", slog.Any("notification", notification.Message))
+			c.log.Info("notification is received", slog.Any("notification", notification.Message))
 		}
 	}
 }
 
-func (s *Sender) Shutdown() error {
-	s.log.Info("closing deliveries...")
-	err := s.channel.Cancel(s.cfg.Tag, true)
+func (c *Consumer) Shutdown() error {
+	c.log.Info("closing deliveries...")
+	err := c.channel.Cancel(c.cfg.Tag, true)
 	if err != nil {
 		return err
 	}
-	s.log.Info("closing sender connection...")
-	err = s.conn.Close()
+	c.log.Info("closing sender connection...")
+	err = c.conn.Close()
 	if err != nil {
 		return err
 	}

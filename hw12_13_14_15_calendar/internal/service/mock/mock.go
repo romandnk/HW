@@ -65,6 +65,20 @@ func (mr *MockEventMockRecorder) DeleteEvent(ctx, id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEvent", reflect.TypeOf((*MockEvent)(nil).DeleteEvent), ctx, id)
 }
 
+// DeleteOutdatedEvents mocks base method.
+func (m *MockEvent) DeleteOutdatedEvents(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOutdatedEvents", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteOutdatedEvents indicates an expected call of DeleteOutdatedEvents.
+func (mr *MockEventMockRecorder) DeleteOutdatedEvents(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOutdatedEvents", reflect.TypeOf((*MockEvent)(nil).DeleteOutdatedEvents), ctx)
+}
+
 // GetAllByDayEvents mocks base method.
 func (m *MockEvent) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	m.ctrl.T.Helper()
@@ -125,6 +139,44 @@ func (mr *MockEventMockRecorder) UpdateEvent(ctx, id, event interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEvent", reflect.TypeOf((*MockEvent)(nil).UpdateEvent), ctx, id, event)
 }
 
+// MockNotification is a mock of Notification interface.
+type MockNotification struct {
+	ctrl     *gomock.Controller
+	recorder *MockNotificationMockRecorder
+}
+
+// MockNotificationMockRecorder is the mock recorder for MockNotification.
+type MockNotificationMockRecorder struct {
+	mock *MockNotification
+}
+
+// NewMockNotification creates a new mock instance.
+func NewMockNotification(ctrl *gomock.Controller) *MockNotification {
+	mock := &MockNotification{ctrl: ctrl}
+	mock.recorder = &MockNotificationMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockNotification) EXPECT() *MockNotificationMockRecorder {
+	return m.recorder
+}
+
+// GetNotificationInAdvance mocks base method.
+func (m *MockNotification) GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNotificationInAdvance", ctx)
+	ret0, _ := ret[0].([]models.Notification)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNotificationInAdvance indicates an expected call of GetNotificationInAdvance.
+func (mr *MockNotificationMockRecorder) GetNotificationInAdvance(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotificationInAdvance", reflect.TypeOf((*MockNotification)(nil).GetNotificationInAdvance), ctx)
+}
+
 // MockServices is a mock of Services interface.
 type MockServices struct {
 	ctrl     *gomock.Controller
@@ -177,6 +229,20 @@ func (mr *MockServicesMockRecorder) DeleteEvent(ctx, id interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEvent", reflect.TypeOf((*MockServices)(nil).DeleteEvent), ctx, id)
 }
 
+// DeleteOutdatedEvents mocks base method.
+func (m *MockServices) DeleteOutdatedEvents(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOutdatedEvents", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteOutdatedEvents indicates an expected call of DeleteOutdatedEvents.
+func (mr *MockServicesMockRecorder) DeleteOutdatedEvents(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOutdatedEvents", reflect.TypeOf((*MockServices)(nil).DeleteOutdatedEvents), ctx)
+}
+
 // GetAllByDayEvents mocks base method.
 func (m *MockServices) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	m.ctrl.T.Helper()
@@ -220,6 +286,21 @@ func (m *MockServices) GetAllByWeekEvents(ctx context.Context, date time.Time) (
 func (mr *MockServicesMockRecorder) GetAllByWeekEvents(ctx, date interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllByWeekEvents", reflect.TypeOf((*MockServices)(nil).GetAllByWeekEvents), ctx, date)
+}
+
+// GetNotificationInAdvance mocks base method.
+func (m *MockServices) GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNotificationInAdvance", ctx)
+	ret0, _ := ret[0].([]models.Notification)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNotificationInAdvance indicates an expected call of GetNotificationInAdvance.
+func (mr *MockServicesMockRecorder) GetNotificationInAdvance(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotificationInAdvance", reflect.TypeOf((*MockServices)(nil).GetNotificationInAdvance), ctx)
 }
 
 // UpdateEvent mocks base method.

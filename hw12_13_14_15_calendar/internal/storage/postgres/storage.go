@@ -43,7 +43,7 @@ func NewStoragePostgres() *Storage {
 	return &Storage{}
 }
 
-func (p *Storage) Connect(ctx context.Context, cfg Config) error {
+func (s *Storage) Connect(ctx context.Context, cfg Config) error {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		cfg.Username,
 		cfg.Password,
@@ -73,14 +73,14 @@ func (p *Storage) Connect(ctx context.Context, cfg Config) error {
 		return err
 	}
 
-	p.db = db
+	s.db = db
 
 	return nil
 }
 
-func (p *Storage) Close() {
-	if p.db == nil {
+func (s *Storage) Close() {
+	if s.db == nil {
 		return
 	}
-	p.db.Close()
+	s.db.Close()
 }

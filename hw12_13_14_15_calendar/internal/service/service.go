@@ -14,17 +14,29 @@ type Event interface {
 	CreateEvent(ctx context.Context, event models.Event) (string, error)
 	UpdateEvent(ctx context.Context, id string, event models.Event) (models.Event, error)
 	DeleteEvent(ctx context.Context, id string) error
+	DeleteOutdatedEvents(ctx context.Context) error
 	GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error)
 	GetAllByWeekEvents(ctx context.Context, date time.Time) ([]models.Event, error)
 	GetAllByMonthEvents(ctx context.Context, date time.Time) ([]models.Event, error)
 }
 
-type Services interface {
-	Event
+type Notification interface {
+	GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error)
 }
 
-func NewService(repo storage.Storage) *EventService {
-	return &EventService{
+type Services interface {
+	Event
+	Notification
+}
+
+type Service struct {
+	Event
+	Notification
+}
+
+func NewService(repo storage.Storage) *Service {
+	return &Service{
 		NewEventService(repo),
+		NewNotificationService(repo),
 	}
 }
