@@ -109,12 +109,12 @@ func main() {
 				logg.Error("error getting notification", slog.String("error", err.Error()))
 			}
 
-			now := time.Now()
-
 			for _, notification := range notifications {
-				notificationMessageDate := notification.Date
+				notificationMessageDate := notification.Date.Add(-notification.Interval).UTC()
+				now := time.Now().UTC()
 
-				if !(notificationMessageDate.Before(now.Add(-time.Second*5)) && notificationMessageDate.After(now.Add(time.Second*5))) {
+				// send notification ten seconds before it must happen
+				if !(notificationMessageDate.Sub(now) >= time.Second*1 && notificationMessageDate.Sub(now) < time.Second*11) {
 					continue
 				}
 
@@ -136,6 +136,13 @@ func main() {
 				if err != nil {
 					logg.Error("error publish notification",
 						slog.Any("notification", msg),
+						slog.String("error", err.Error()))
+				}
+
+				err = services.Notification.UpdateScheduledNotification(ctx, notification.EventID)
+				if err != nil {
+					logg.Error("error updating scheduled notification",
+						slog.String("notification id", notification.EventID),
 						slog.String("error", err.Error()))
 				}
 			}

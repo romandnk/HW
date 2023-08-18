@@ -177,6 +177,20 @@ func (mr *MockNotificationMockRecorder) GetNotificationInAdvance(ctx interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotificationInAdvance", reflect.TypeOf((*MockNotification)(nil).GetNotificationInAdvance), ctx)
 }
 
+// UpdateScheduledNotification mocks base method.
+func (m *MockNotification) UpdateScheduledNotification(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateScheduledNotification", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateScheduledNotification indicates an expected call of UpdateScheduledNotification.
+func (mr *MockNotificationMockRecorder) UpdateScheduledNotification(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateScheduledNotification", reflect.TypeOf((*MockNotification)(nil).UpdateScheduledNotification), ctx, id)
+}
+
 // MockServices is a mock of Services interface.
 type MockServices struct {
 	ctrl     *gomock.Controller
@@ -316,4 +330,18 @@ func (m *MockServices) UpdateEvent(ctx context.Context, id string, event models.
 func (mr *MockServicesMockRecorder) UpdateEvent(ctx, id, event interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEvent", reflect.TypeOf((*MockServices)(nil).UpdateEvent), ctx, id, event)
+}
+
+// UpdateScheduledNotification mocks base method.
+func (m *MockServices) UpdateScheduledNotification(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateScheduledNotification", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateScheduledNotification indicates an expected call of UpdateScheduledNotification.
+func (mr *MockServicesMockRecorder) UpdateScheduledNotification(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateScheduledNotification", reflect.TypeOf((*MockServices)(nil).UpdateScheduledNotification), ctx, id)
 }

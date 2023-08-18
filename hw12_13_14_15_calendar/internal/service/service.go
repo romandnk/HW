@@ -21,6 +21,7 @@ type Event interface {
 }
 
 type Notification interface {
+	UpdateScheduledNotification(ctx context.Context, id string) error
 	GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error)
 }
 

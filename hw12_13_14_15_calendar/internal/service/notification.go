@@ -16,5 +16,9 @@ func NewNotificationService(notification storage.NotificationStorage) *Notificat
 }
 
 func (n *NotificationService) GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error) {
-	return n.notification.GetNotificationInAdvance(ctx)
+	return n.notification.GetNotificationsInAdvance(ctx)
+}
+
+func (n *NotificationService) UpdateScheduledNotification(ctx context.Context, id string) error {
+	return n.notification.UpdateScheduledNotification(ctx, id)
 }

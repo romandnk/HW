@@ -18,7 +18,8 @@ type EventStorage interface {
 }
 
 type NotificationStorage interface {
-	GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error)
+	UpdateScheduledNotification(ctx context.Context, id string) error
+	GetNotificationsInAdvance(ctx context.Context) ([]models.Notification, error)
 }
 
 type Storage interface {

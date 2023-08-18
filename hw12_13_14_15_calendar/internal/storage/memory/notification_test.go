@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorage_GetNotificationInAdvance(t *testing.T) {
+func TestStorage_GetNotificationsInAdvance(t *testing.T) {
 	st := NewStorageMemory()
 	ctx := context.Background()
 
@@ -27,23 +27,28 @@ func TestStorage_GetNotificationInAdvance(t *testing.T) {
 	}
 	st.events["id3"] = models.Event{
 		ID:                   "id3",
-		Date:                 time.Now().Add(-time.Hour),
+		Date:                 time.Now().Add(time.Minute * 30),
 		NotificationInterval: 0,
 		Scheduled:            false,
 	}
 	st.events["id4"] = models.Event{
 		ID:                   "id4",
+		Date:                 time.Now().Add(-time.Hour),
+		NotificationInterval: 0,
+		Scheduled:            false,
+	}
+	st.events["id5"] = models.Event{
+		ID:                   "id5",
 		Date:                 time.Now().Add(time.Second * 3),
 		NotificationInterval: 0,
 		Scheduled:            false,
 	}
 
-	notifications, err := st.GetNotificationInAdvance(ctx)
+	notifications, err := st.GetNotificationsInAdvance(ctx)
 	require.NoError(t, err)
-	require.Len(t, notifications, 2)
+	require.Len(t, notifications, 3)
 
-	require.True(t, st.events["id1"].Scheduled == true)
-	require.True(t, st.events["id2"].Scheduled == true)
-	require.True(t, st.events["id3"].Scheduled == false)
-	require.True(t, st.events["id4"].Scheduled == true)
+	require.Equal(t, notifications[0].Date, st.events["id5"].Date)
+	require.Equal(t, notifications[1].Date, st.events["id3"].Date)
+	require.Equal(t, notifications[2].Date, st.events["id1"].Date)
 }

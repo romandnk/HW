@@ -9,28 +9,19 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-func (s *Storage) GetNotificationInAdvance(ctx context.Context) ([]models.Notification, error) {
+func (s *Storage) GetNotificationsInAdvance(ctx context.Context) ([]models.Notification, error) {
 	var notifications []models.Notification
 
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		return nil, customerror.CustomError{
-			Field:   "",
-			Message: err.Error(),
-		}
-	}
-	defer tx.Rollback(ctx)
-
 	selectNotifications := fmt.Sprintf(`
-		SELECT id, title, date, user_id
+		SELECT id, title, date, user_id, notification_interval
 		FROM %s
-		WHERE scheduled = false AND $1 <= date - notification_interval
-		ORDER BY date DESC
+		WHERE scheduled = false AND $1::timestamp <= date - notification_interval
+		ORDER BY (date - notification_interval)
 		LIMIT 10;`, eventsTable)
 
-	nw := time.Now().Format(time.RFC3339Nano)
+	nw := time.Now().UTC()
 
-	rows, err := tx.Query(ctx, selectNotifications, nw)
+	rows, err := s.db.Query(ctx, selectNotifications, nw)
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
@@ -41,20 +32,12 @@ func (s *Storage) GetNotificationInAdvance(ctx context.Context) ([]models.Notifi
 	for rows.Next() {
 		var notification models.Notification
 
-		err = rows.Scan(&notification.EventID, &notification.Title, &notification.Date, &notification.UserID)
-		if err != nil {
-			return nil, customerror.CustomError{
-				Field:   "",
-				Message: err.Error(),
-			}
-		}
-
-		updateEvents := fmt.Sprintf(`
-			UPDATE %s
-			SET scheduled = true
-			WHERE id = $1`, eventsTable)
-
-		_, err := tx.Exec(ctx, updateEvents, notification.EventID)
+		err = rows.Scan(
+			&notification.EventID,
+			&notification.Title,
+			&notification.Date,
+			&notification.UserID,
+			&notification.Interval)
 		if err != nil {
 			return nil, customerror.CustomError{
 				Field:   "",
@@ -72,13 +55,29 @@ func (s *Storage) GetNotificationInAdvance(ctx context.Context) ([]models.Notifi
 		}
 	}
 
-	err = tx.Commit(ctx)
+	return notifications, nil
+}
+
+func (s *Storage) UpdateScheduledNotification(ctx context.Context, id string) error {
+	updateNotifications := fmt.Sprintf(`
+		UPDATE %s
+		SET scheduled = true 
+		WHERE id = $1`, eventsTable)
+
+	ct, err := s.db.Exec(ctx, updateNotifications, id)
 	if err != nil {
-		return nil, customerror.CustomError{
+		return customerror.CustomError{
 			Field:   "",
 			Message: err.Error(),
 		}
 	}
 
-	return notifications, nil
+	if ct.RowsAffected() == 0 {
+		return customerror.CustomError{
+			Field:   "id",
+			Message: "notification wasn't updated with id: " + id,
+		}
+	}
+
+	return nil
 }
