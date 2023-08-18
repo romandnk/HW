@@ -206,6 +206,27 @@ func TestStorageDeleteEventError(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
+// TODO: how to test time.Now()?
+// func TestStorageDeleteOutdatedEvents(t *testing.T) {
+//	mock, err := pgxmock.NewPool()
+//	require.NoError(t, err)
+//	defer mock.Close()
+//
+//	ctx := context.Background()
+//
+//	storage := NewStoragePostgres()
+//	storage.db = mock
+//
+//	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1::timestamp - interval '1 year'`, eventsTable)
+//
+//	mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(now).WillReturnResult(pgxmock.NewResult("DELETE", 1))
+//
+//	err = storage.DeleteOutdatedEvents(ctx)
+//	require.NoError(t, err)
+//
+//	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
+//}
+
 func TestStorageGetAllByDayEvents(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
