@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"log"
 	"os"
 	"os/signal"
@@ -83,6 +84,8 @@ func main() {
 			slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
 	}
 
+	producer := mq.NewProducer(scheduler)
+
 	tickerScheduler := time.NewTicker(cfg.TimeToSchedule)
 	tickerDeleteOutdated := time.NewTicker(cfg.TimeToDeleteOutdated)
 	done := make(chan struct{})
@@ -90,7 +93,7 @@ func main() {
 	go func() {
 		<-ctx.Done()
 
-		if err := scheduler.Shutdown(); err != nil {
+		if err := producer.Shutdown(); err != nil {
 			logg.Error("error stopping rabbit scheduler",
 				slog.String("error", err.Error()),
 				slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
@@ -118,7 +121,7 @@ func main() {
 					continue
 				}
 
-				msg := rabbitmq.Message{
+				msg := mq.Message{
 					EventID: notification.EventID,
 					Title:   notification.Title,
 					Date:    notification.Date,
@@ -132,7 +135,7 @@ func main() {
 						slog.String("error", err.Error()))
 				}
 
-				err = scheduler.Publish(ctx, body)
+				err = producer.Publish(ctx, body)
 				if err != nil {
 					logg.Error("error publish notification",
 						slog.Any("notification", msg),

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"log"
 	"os/signal"
 	"strconv"
@@ -39,10 +40,12 @@ func main() {
 		cancel()
 	}
 
+	consumer := mq.NewConsumer(sender)
+
 	go func() {
 		<-ctx.Done()
 
-		if err := sender.Shutdown(); err != nil {
+		if err := consumer.Shutdown(); err != nil {
 			logg.Error("error stopping rabbit sender",
 				slog.String("error", err.Error()),
 				slog.String("address", cfg.MQ.Host+":"+strconv.Itoa(cfg.MQ.Port)))
@@ -51,10 +54,18 @@ func main() {
 		logg.Info("rabbit sender is stopped")
 	}()
 
-	err = sender.Consume()
+	notifications, err := consumer.Consume()
 	if err != nil {
 		logg.Error("error consuming rabbit",
 			slog.String("errors", err.Error()))
 		cancel()
+	}
+
+	for notification := range notifications {
+		if notification.Err != nil {
+			logg.Error("error receiving notification", slog.String("error", notification.Err.Error()))
+			continue
+		}
+		logg.Info("notification is received", slog.Any("notification", notification.Message))
 	}
 }

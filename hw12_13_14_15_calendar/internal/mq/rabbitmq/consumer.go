@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -35,7 +36,6 @@ type Consumer struct {
 	channel *amqp.Channel
 	log     logger.Logger
 	cfg     ConsumerConfig
-	done    chan struct{}
 }
 
 func NewSender(cfg ConsumerConfig, log logger.Logger) (*Consumer, error) {
@@ -100,13 +100,12 @@ func NewSender(cfg ConsumerConfig, log logger.Logger) (*Consumer, error) {
 		channel: ch,
 		log:     log,
 		cfg:     cfg,
-		done:    make(chan struct{}),
 	}, nil
 }
 
-func (c *Consumer) Consume() error {
+func (c *Consumer) Consume() (<-chan mq.Notification, error) {
 	if c.channel == nil {
-		return ErrSenderRabbitNilChannel
+		return nil, ErrSenderRabbitNilChannel
 	}
 
 	c.log.Info("starting consuming...")
@@ -121,30 +120,10 @@ func (c *Consumer) Consume() error {
 	)
 	if err != nil {
 		c.log.Error("error while starting consuming", slog.String("error", err.Error()))
-		return err
+		return nil, err
 	}
 
-	notifications := make(chan Notification, 10)
-
-	go handle(deliveries, notifications, c.done)
-
-	for {
-		select {
-		case <-c.done:
-			close(notifications)
-			return nil
-		case notification, ok := <-notifications:
-			if !ok {
-				return nil
-			}
-
-			if notification.Err != nil {
-				c.log.Error("error receiving notification", slog.String("error", notification.Err.Error()))
-				continue
-			}
-			c.log.Info("notification is received", slog.Any("notification", notification.Message))
-		}
-	}
+	return handle(deliveries), nil
 }
 
 func (c *Consumer) Shutdown() error {
@@ -162,22 +141,27 @@ func (c *Consumer) Shutdown() error {
 	return nil
 }
 
-func handle(deliveries <-chan amqp.Delivery, notifications chan Notification, done chan struct{}) {
-	for delivery := range deliveries {
-		var msg Message
-		err := json.Unmarshal(delivery.Body, &msg)
+func handle(deliveries <-chan amqp.Delivery) chan mq.Notification {
+	notifications := make(chan mq.Notification, 10)
 
-		if err == nil {
-			delivery.Ack(false)
+	go func() {
+		for delivery := range deliveries {
+			var msg mq.Message
+			err := json.Unmarshal(delivery.Body, &msg)
+
+			if err == nil {
+				delivery.Ack(false)
+			}
+
+			notification := mq.Notification{
+				Message: msg,
+				Err:     err,
+			}
+
+			notifications <- notification
 		}
+		close(notifications)
+	}()
 
-		notification := Notification{
-			Message: msg,
-			Err:     err,
-		}
-
-		notifications <- notification
-	}
-
-	done <- struct{}{}
+	return notifications
 }
