@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"log"
 	"os/signal"
 	"strconv"
 	"syscall"
 
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"golang.org/x/exp/slog"
 )

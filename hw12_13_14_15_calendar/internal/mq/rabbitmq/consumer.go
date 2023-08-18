@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"golang.org/x/exp/slog"
 )
 

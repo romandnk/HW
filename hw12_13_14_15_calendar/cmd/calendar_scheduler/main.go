@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/service"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage"
