@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type ServerHTTPConfig struct {
+type Config struct {
 	Host         string
 	Port         string
 	ReadTimeout  time.Duration
@@ -18,7 +18,7 @@ type ServerHTTP struct {
 	srv *http.Server
 }
 
-func NewServerHTTP(cfg ServerHTTPConfig, handler http.Handler) *ServerHTTP {
+func NewServerHTTP(cfg Config, handler http.Handler) *ServerHTTP {
 	srv := &http.Server{
 		Addr:           net.JoinHostPort(cfg.Host, cfg.Port),
 		Handler:        handler,

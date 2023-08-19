@@ -1,0 +1,17 @@
+[logger]
+level = "INFO"
+representation = "TEXT"
+
+[rabbit_sender]
+host = "localhost"
+port = 5672
+heartbeat = "30s"
+exchange_name = "notification"
+exchange_type = "direct"
+durable_exchange = true
+auto_delete_exchange = false
+queue_name = "notification"
+durable_queue     = true
+auto_delete_queue = false
+routing_key = "notification"
+tag = "sender"

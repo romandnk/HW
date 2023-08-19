@@ -10,4 +10,5 @@ type Event struct {
 	Description          string
 	UserID               int
 	NotificationInterval time.Duration
+	Scheduled            bool
 }

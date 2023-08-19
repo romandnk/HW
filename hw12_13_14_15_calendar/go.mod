@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.4.2
 	github.com/joho/godotenv v1.5.1
 	github.com/pashagolub/pgxmock/v2 v2.10.0
+	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/mock v0.2.0

@@ -78,6 +78,30 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *Storage) DeleteOutdatedEvents(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	select {
+	case <-ctx.Done():
+		return customerror.CustomError{
+			Field:   "",
+			Message: ctx.Err().Error(),
+		}
+	default:
+	}
+
+	now := time.Now()
+
+	for id, event := range s.events {
+		if event.Date.Before(now.Add(-time.Hour * 8760)) {
+			delete(s.events, id)
+		}
+	}
+
+	return nil
+}
+
 func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]models.Event, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

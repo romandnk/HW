@@ -17,6 +17,12 @@ const (
 	textLogger = "TEXT"
 )
 
+type Config struct {
+	Level          string
+	Representation string
+	LogFilePath    string
+}
+
 type MyLogger struct {
 	log *slog.Logger
 }
@@ -27,12 +33,12 @@ type Logger interface {
 	WriteLogInFile(path string, result string) error
 }
 
-func NewLogger(level string, representation string) *MyLogger {
+func NewLogger(cfg Config) *MyLogger {
 	var log *slog.Logger
 
 	logOptions := slog.HandlerOptions{}
 
-	switch level {
+	switch cfg.Level {
 	case infoLevel:
 		logOptions.Level = slog.LevelInfo
 	case debugLevel:
@@ -43,7 +49,7 @@ func NewLogger(level string, representation string) *MyLogger {
 		logOptions.Level = slog.LevelWarn
 	}
 
-	switch representation {
+	switch cfg.Representation {
 	case jsonLogger:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &logOptions))
 	case textLogger:

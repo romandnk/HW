@@ -5,9 +5,9 @@ CREATE TABLE events (
     duration INTERVAL HOUR TO SECOND NOT NULL,
     description TEXT,
     user_id INTEGER NOT NULL,
-    notification_interval INTERVAL
+    notification_interval INTERVAL,
+    scheduled boolean DEFAULT FALSE NOT NULL
 );
 
 CREATE INDEX idx_events_id ON events (id);
 CREATE INDEX idx_events_date ON events (date);
-

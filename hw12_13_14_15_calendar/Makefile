@@ -1,16 +1,35 @@
-include ./configs/.env
+include ./configs/calendar.env
 
-BIN := "./bin/calendar"
+BIN_calendar := "./bin/calendar"
+BIN_scheduler := "./bin/scheduler"
+BIN_sender := "./bin/sender"
 DOCKER_IMG="calendar:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
-build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+build-calendar:
+	go build -v -o $(BIN_calendar) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
-run: build
-	$(BIN) -config ./configs/calendar_config.toml
+build-calendar-scheduler:
+	go build -v -o $(BIN_scheduler) ./cmd/calendar_scheduler
+
+build-calendar-sender:
+	go build -v -o $(BIN_sender) ./cmd/calendar_sender
+
+build: build-calendar build-calendar-scheduler build-calendar-sender
+
+run-calendar: build-calendar
+	$(BIN_calendar) -config ./configs/calendar_config.toml
+
+run-calendar-scheduler: build-calendar-scheduler
+	$(BIN_scheduler) -config ./configs/scheduler_config.toml
+
+run-calendar-sender: build-calendar-sender
+	$(BIN_sender) -config ./configs/sender_config.toml
+
+clean:
+	rm -f $(BIN_calendar) $(BIN_scheduler) $(BIN_sender)
 
 generate:
 	go generate ./api/.
@@ -47,3 +66,9 @@ db:
 
 d:
 	docker stop pg && docker rm pg
+
+r:
+	docker run -d --hostname rabbitmq --name rmq -p 15672:15672 -p 5672:5672 rabbitmq:3-management
+
+dr:
+	docker stop rmq && docker rm rmq

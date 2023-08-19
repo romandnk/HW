@@ -1,4 +1,4 @@
-package sqlstorage
+package postgres
 
 import (
 	"context"
@@ -138,6 +138,22 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 		return customerror.CustomError{
 			Field:   "id",
 			Message: "no event with id " + id,
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteOutdatedEvents(ctx context.Context) error {
+	now := time.Now().Format(time.RFC3339Nano)
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1::timestamp - interval '1 year'`, eventsTable)
+
+	_, err := s.db.Exec(ctx, query, now)
+	if err != nil {
+		return customerror.CustomError{
+			Field:   "",
+			Message: err.Error(),
 		}
 	}
 

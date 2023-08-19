@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type ServerGRPCConfig struct {
+type Config struct {
 	Host              string
 	Port              string
 	MaxConnectionIdle time.Duration
@@ -25,7 +25,7 @@ type ServerGRPC struct {
 	handler *HandlerGRPC
 }
 
-func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig, logPath string) *ServerGRPC {
+func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg Config, logPath string) *ServerGRPC {
 	serverOptions := []grpc.ServerOption{
 		grpc.Creds(insecure.NewCredentials()),
 		grpc.UnaryInterceptor(loggingInterceptor(log, logPath)),
@@ -45,7 +45,7 @@ func NewServerGRPC(handler *HandlerGRPC, log logger.Logger, cfg ServerGRPCConfig
 	}
 }
 
-func (s *ServerGRPC) Start(cfg ServerGRPCConfig) error {
+func (s *ServerGRPC) Start(cfg Config) error {
 	lsn, err := net.Listen("tcp", net.JoinHostPort(cfg.Host, cfg.Port))
 	if err != nil {
 		return err

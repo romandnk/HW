@@ -1,0 +1,34 @@
+[logger]
+level = "INFO"
+representation = "TEXT"
+
+[storage]
+type = "postgres"
+
+[storage.postgres]
+host = "localhost"
+port  = "5432"
+db_name  = "calendar_db"
+sslmode = "disable"
+max_conns = 5
+min_conns = 3
+max_conn_lifetime = "1h"
+max_conn_idle_time = "1m"
+
+[rabbit_scheduler]
+host = "localhost"
+port = 5672
+heartbeat = "30s"
+exchange_name = "notification"
+queue_name = "notification"
+exchange_type = "direct"
+durable_exchange = true
+durable_queue = true
+auto_delete_exchange = false
+auto_delete_queue = false
+routing_key = "notification"
+delivery_mode     = 2
+
+[general_preferences]
+time_to_schedule = "5s"
+time_to_delete_outdated = "1h"
