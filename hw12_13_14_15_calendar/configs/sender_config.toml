@@ -3,7 +3,7 @@ level = "INFO"
 representation = "TEXT"
 
 [rabbit_sender]
-host = "localhost"
+host = "rabbit"
 port = 5672
 heartbeat = "30s"
 exchange_name = "notification"

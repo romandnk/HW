@@ -1,1 +1,95 @@
-version: "3"
+version: "3.9"
+name: "calendar"
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: "calendar_db"
+    ports:
+      - "5432:5432"
+    networks:
+      calendar:
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "calendar_db" ]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  migration:
+    build:
+      context: ../.
+      dockerfile: ./deployments/migration/Dockerfile
+    networks:
+      - calendar
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  calendar:
+    build:
+      context: ../.
+      dockerfile: ./deployments/calendar/Dockerfile
+      args:
+        BUILD_VERSION: "develop"
+    depends_on:
+      - migration
+    restart: always
+    networks:
+      calendar:
+    ports:
+      - '8080:8080'
+      - '50051:50051'
+    volumes:
+      - log:/app/logging/
+
+  rabbit:
+    image: rabbitmq:3.12-management-alpine
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      calendar:
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
+      interval: 5s
+      timeout: 30s
+      retries: 10
+    ports:
+      - '5672:5672'
+
+  scheduler:
+    build:
+      context: ../.
+      dockerfile: ./deployments/scheduler/Dockerfile
+      args:
+        BUILD_VERSION: "develop"
+    depends_on:
+      rabbit:
+        condition: service_healthy
+    restart: always
+    networks:
+      calendar:
+
+  sender:
+    build:
+      context: ../.
+      dockerfile: ./deployments/sender/Dockerfile
+      args:
+        BUILD_VERSION: "develop"
+    depends_on:
+      rabbit:
+        condition: service_healthy
+    restart: always
+    networks:
+      calendar:
+
+networks:
+  calendar:
+
+volumes:
+  pgdata:
+  log:
