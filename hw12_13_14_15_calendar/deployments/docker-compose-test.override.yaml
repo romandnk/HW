@@ -1,0 +1,32 @@
+version: "3.9"
+name: "calendar_test"
+
+services:
+  postgres:
+    ports:
+    - "5433:5432"
+    volumes: []
+
+  calendar:
+    build:
+      args:
+        BUILD_VERSION: "test"
+    ports:
+      - '8081:8080'
+      - '50052:50051'
+
+    volumes: []
+
+  rabbit:
+    ports:
+    - "5673:5672"
+
+  scheduler:
+    build:
+      args:
+        BUILD_VERSION: "test"
+
+  sender:
+    build:
+      args:
+        BUILD_VERSION: "test"

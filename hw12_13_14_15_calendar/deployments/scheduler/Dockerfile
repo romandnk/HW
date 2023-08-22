@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -v -o "./bin/scheduler" \
     -ldflags "-X main.release=$BUILD_VERSION -X main.buildDate=$(date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(git log --format="%h" -n 1)" \
     ./cmd/calendar_scheduler
 
-FROM alpine:latest
+FROM scratch
 
 WORKDIR /app
 
