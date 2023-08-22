@@ -1,16 +1,20 @@
 //go:build integration
 
-package intergration_test
+package integration_test
 
 import (
+	"bytes"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 	"github.com/stretchr/testify/suite"
 	"net"
 	"net/http"
-	"os"
 	"testing"
+	"time"
 )
+
+const url = "http://localhost:8080"
 
 type CalendarSuite struct {
 	suite.Suite
@@ -20,11 +24,8 @@ type CalendarSuite struct {
 }
 
 func (c *CalendarSuite) SetupSuite() {
-	host := os.Getenv("TEST_HOST")
-	port := os.Getenv("TEST_PORT")
-
 	srv := &http.Server{
-		Addr: net.JoinHostPort(host, port),
+		Addr: net.JoinHostPort("localhost", "8080"),
 	}
 
 	err := srv.ListenAndServe()
@@ -33,31 +34,12 @@ func (c *CalendarSuite) SetupSuite() {
 	c.srv = srv
 	c.ctx = context.Background()
 
-	//connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-	//	os.Getenv("TEST_POSTGRES_USERNAME"),
-	//	os.Getenv("TEST_POSTGRES_PASSWORD"),
-	//	os.Getenv("TEST_POSTGRES_HOST"),
-	//	os.Getenv("TEST_POSTGRES_PORT"),
-	//	os.Getenv("TEST_POSTGRES_DBNAME"),
-	//)
+	connString := "postgres://postgres:1234@calendar:5432/calendar_db?sslmode=disable"
 
 	conn, err := pgxpool.New(c.ctx, connString)
 	c.Require().NoError(err)
 
 	err = conn.Ping(c.ctx)
-	c.Require().NoError(err)
-
-	_, err = conn.Exec(c.ctx, `
-		CREATE TABLE test_events (
-    		id VARCHAR(36) PRIMARY KEY,
-    		title VARCHAR(255) NOT NULL,
-    		date TIMESTAMPTZ NOT NULL,
-    		duration INTERVAL HOUR TO SECOND NOT NULL,
-    		description TEXT,
-    		user_id INTEGER NOT NULL,
-    		notification_interval INTERVAL,
-    		scheduled boolean DEFAULT FALSE NOT NULL
-		)`)
 	c.Require().NoError(err)
 
 	c.dbConn = conn
@@ -67,19 +49,72 @@ func (c *CalendarSuite) TearDownSuite() {
 	err := c.srv.Shutdown(c.ctx)
 	c.Require().NoError(err)
 
-	_, err = c.dbConn.Exec(c.ctx, "DROP TABLE test_events")
+	_, err = c.dbConn.Exec(c.ctx, "DROP TABLE events")
 	c.Require().NoError(err)
 
 	c.dbConn.Close()
 }
 
 func (c *CalendarSuite) TearDownTest() {
-	_, err := c.dbConn.Exec(c.ctx, "TRUNCATE test_events RESTART IDENTITY CASCADE")
+	_, err := c.dbConn.Exec(c.ctx, "TRUNCATE events RESTART IDENTITY CASCADE")
 	c.Require().NoError(err)
 }
 
 func (c *CalendarSuite) TestCreateEvent() {
+	moscowTimeZone, err := time.LoadLocation("Europe/Moscow")
+	c.Require().NoError(err)
 
+	event := models.Event{
+		Title:                "Harry Potter book",
+		Date:                 time.Date(2023, 8, 20, 20, 30, 00, 00, moscowTimeZone), //nolint:gofumpt
+		Duration:             time.Hour * 24,
+		Description:          "new book for sale, no one has read it",
+		UserID:               1,
+		NotificationInterval: time.Hour,
+		Scheduled:            false,
+	}
+
+	data := `{
+		"Title": "Harry Potter book",
+		"Date": "2023-08-20T20:30:00+03:00",
+		"Duration": "24h0m0s",
+		"Description": "new book for sale, no one has read it",
+		"NotificationInterval": "1h0m0s",
+	}`
+
+	resp, err := http.Post(url+"/events", "application/json", bytes.NewReader([]byte(data)))
+	c.Require().NoError(err)
+	defer resp.Body.Close()
+
+	c.Require().Equal(http.StatusCreated, resp.StatusCode)
+
+	query := `
+		SELECT * FROM events WHERE title = 'Harry Potter book'
+	`
+	rows, err := c.dbConn.Query(c.ctx, query)
+	c.Require().NoError(err)
+
+	var actualEvent models.Event
+	err = rows.Scan(
+		&actualEvent.ID,
+		&actualEvent.Title,
+		&actualEvent.Date,
+		&actualEvent.Duration,
+		&actualEvent.Description,
+		&actualEvent.UserID,
+		&actualEvent.NotificationInterval,
+		&actualEvent.Scheduled,
+	)
+	c.Require().NoError(err)
+
+	c.Require().True(actualEvent.ID != "")
+	c.Require().Equal(event.Title, actualEvent.Title)
+	c.Require().Equal(event.Date.UTC(), actualEvent.Date)
+	c.Require().Equal(event.Duration, actualEvent.Duration)
+	c.Require().Equal(event.Description, actualEvent.Description)
+	c.Require().Equal(event.UserID, actualEvent.UserID)
+	c.Require().Equal(event.NotificationInterval, actualEvent.NotificationInterval)
+	c.Require().Equal(event.Scheduled, actualEvent.Scheduled)
 }
 
 func TestCalendarSuite(t *testing.T) {
