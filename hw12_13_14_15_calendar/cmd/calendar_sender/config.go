@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"github.com/spf13/viper"
@@ -39,10 +38,6 @@ func NewConfig(path string) (*Config, error) {
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, fmt.Errorf("errors reading rabbit sender config file: %w", err)
-	}
-
-	if err := godotenv.Load("./configs/sender.env"); err != nil {
-		return nil, fmt.Errorf("errors loading sender.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("sender_rabbit")

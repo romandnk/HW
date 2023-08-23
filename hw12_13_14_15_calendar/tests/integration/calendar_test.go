@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const url = "http://localhost:8080"
+const url = "http://calendar:8080"
 
 type CalendarSuite struct {
 	suite.Suite
@@ -25,7 +25,7 @@ type CalendarSuite struct {
 
 func (c *CalendarSuite) SetupSuite() {
 	srv := &http.Server{
-		Addr: net.JoinHostPort("localhost", "8080"),
+		Addr: net.JoinHostPort("calendar", "8080"),
 	}
 
 	err := srv.ListenAndServe()
@@ -34,7 +34,7 @@ func (c *CalendarSuite) SetupSuite() {
 	c.srv = srv
 	c.ctx = context.Background()
 
-	connString := "postgres://postgres:1234@calendar:5432/calendar_db?sslmode=disable"
+	connString := "postgres://test:1234@postgres:5432/calendar_db?sslmode=disable"
 
 	conn, err := pgxpool.New(c.ctx, connString)
 	c.Require().NoError(err)

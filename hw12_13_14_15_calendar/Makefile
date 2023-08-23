@@ -12,7 +12,8 @@ up:
 	docker compose -f ./deployments/docker-compose.yaml up --build -d
 
 down:
-	docker compose -f ./deployments/docker-compose.yaml down
+	docker compose -f ./deployments/docker-compose.yaml down && \
+	docker volume rm calendar_log calendar_pgdata
 
 build-calendar:
 	go build -v -o $(BIN_calendar) -ldflags "$(LDFLAGS)" ./cmd/calendar
@@ -59,7 +60,10 @@ test:
 	go test -race ./internal/...
 
 integration-tests:
-	docker compose -f deployments/docker-compose.yaml -f deployments/docker-compose-test.override.yaml up -d --build
+	docker compose -f deployments/docker-compose-test.yaml up -d --build
+
+integration-tests-down:
+	docker compose -f deployments/docker-compose-test.yaml down
 
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.53.3

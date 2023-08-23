@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/joho/godotenv" //nolint:depguard
+	//nolint:depguard
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/grpc"
 	internalhttp "github.com/romandnk/HW/hw12_13_14_15_calendar/internal/server/http"
@@ -65,10 +65,6 @@ func NewConfig(path string) (*Config, error) {
 	err := viper.ReadInConfig() // read config file
 	if err != nil {
 		return nil, fmt.Errorf("errors reading calendar config file: %w", err)
-	}
-
-	if err := godotenv.Load("./configs/calendar.env"); err != nil { // load .env into system
-		return nil, fmt.Errorf("errors loading calendar.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("calendar") // out env variables will look like CALENDAR_PASSWORD=password
