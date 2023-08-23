@@ -82,11 +82,18 @@ func (c *CalendarSuite) TestCreateEvent() {
 		"NotificationInterval": "1h0m0s",
 	}`
 
-	resp, err := http.Post(url+"/events", "application/json", bytes.NewReader([]byte(data)))
+	req, err := http.NewRequestWithContext(c.ctx, http.MethodPost, url+"/events", bytes.NewReader([]byte(data)))
 	c.Require().NoError(err)
-	defer resp.Body.Close()
 
-	c.Require().Equal(http.StatusCreated, resp.StatusCode)
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	c.Require().NoError(err)
+
+	defer res.Body.Close()
+
+	c.Require().Equal(http.StatusCreated, res.StatusCode)
 
 	query := `
 		SELECT * FROM events WHERE title = 'Harry Potter book'
