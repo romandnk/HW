@@ -79,7 +79,7 @@ func (h *HandlerHTTP) CreateEvent(c *gin.Context) {
 	id, err := h.services.CreateEvent(c, event)
 	if err != nil {
 		message := "error creating event"
-		resp := newResponse(createAction, "notification_interval", message, err)
+		resp := newResponse(createAction, "", message, err)
 		h.sentResponse(c, http.StatusInternalServerError, resp)
 		return
 	}

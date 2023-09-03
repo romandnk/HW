@@ -16,6 +16,8 @@ services:
       calendar_test:
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready", "-d", "calendar_db" ]
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
 
   migration:
     build:
@@ -102,6 +104,8 @@ services:
       context: ../.
       dockerfile: ./deployments/integration_test/Dockerfile
     depends_on:
+      - postgres
+      - migration
       - calendar
       - scheduler
       - sender
@@ -110,3 +114,6 @@ services:
 
 networks:
   calendar_test:
+
+volumes:
+  pgdata_test:

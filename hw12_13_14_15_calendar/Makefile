@@ -60,10 +60,14 @@ test:
 	go test -race ./internal/...
 
 integration-tests:
-	docker compose -f deployments/docker-compose-test.yaml up -d --build
+	docker compose -f deployments/docker-compose-test.yaml up -d --build && \
+	docker wait calendar_test-integration_test-1 && \
+	docker compose -f deployments/docker-compose-test.yaml down && \
+    docker volume rm calendar_test_pgdata_test
 
 integration-tests-down:
-	docker compose -f deployments/docker-compose-test.yaml down
+	docker compose -f deployments/docker-compose-test.yaml down && \
+    docker volume rm calendar_test_pgdata_test
 
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.53.3
