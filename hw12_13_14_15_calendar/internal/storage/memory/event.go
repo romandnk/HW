@@ -8,8 +8,6 @@ import (
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/models"
 )
 
-const day = 24 * time.Hour
-
 func (s *Storage) CreateEvent(ctx context.Context, event models.Event) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -94,7 +92,7 @@ func (s *Storage) DeleteOutdatedEvents(ctx context.Context) error {
 	now := time.Now()
 
 	for id, event := range s.events {
-		if event.Date.Before(now.Add(-time.Hour * 8760)) {
+		if event.Date.Before(now.AddDate(-1, 0, 0)) {
 			delete(s.events, id)
 		}
 	}
@@ -118,7 +116,7 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 	var events []models.Event
 
 	for _, event := range s.events {
-		if event.Date == date {
+		if inTimeSpan(date, date.AddDate(0, 0, 1).Add(-time.Nanosecond), event.Date) {
 			events = append(events, event)
 		}
 	}
@@ -142,7 +140,7 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 	var events []models.Event
 
 	for _, event := range s.events {
-		if inTimeSpan(date, date.Add(6*day), event.Date) {
+		if inTimeSpan(date, date.AddDate(0, 0, 7).Add(-time.Nanosecond), event.Date) {
 			events = append(events, event)
 		}
 	}
@@ -166,7 +164,7 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 	var events []models.Event
 
 	for _, event := range s.events {
-		if inTimeSpan(date, date.Add(29*day), event.Date) {
+		if inTimeSpan(date, date.AddDate(0, 1, 0).Add(-time.Nanosecond), event.Date) {
 			events = append(events, event)
 		}
 	}

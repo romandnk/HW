@@ -206,33 +206,12 @@ func TestStorageDeleteEventError(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
 }
 
-// TODO: how to test time.Now()?
-// func TestStorageDeleteOutdatedEvents(t *testing.T) {
-//	mock, err := pgxmock.NewPool()
-//	require.NoError(t, err)
-//	defer mock.Close()
-//
-//	ctx := context.Background()
-//
-//	storage := NewStoragePostgres()
-//	storage.db = mock
-//
-//	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1::timestamp - interval '1 year'`, eventsTable)
-//
-//	mock.ExpectExec(regexp.QuoteMeta(query)).WithArgs(now).WillReturnResult(pgxmock.NewResult("DELETE", 1))
-//
-//	err = storage.DeleteOutdatedEvents(ctx)
-//	require.NoError(t, err)
-//
-//	require.NoError(t, mock.ExpectationsWereMet(), "there was unexpected result")
-//}
-
 func TestStorageGetAllByDayEvents(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
 	defer mock.Close()
 
-	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)
+	date := time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	expectedEvents := []models.Event{
 		{
@@ -267,10 +246,12 @@ func TestStorageGetAllByDayEvents(t *testing.T) {
 
 	queryGetByDay := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
-		FROM %s
-		WHERE date = $1`, eventsTable)
+		FROM %s 
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(date).WillReturnRows(expectedRows)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).
+		WithArgs(date, date.AddDate(0, 0, 1).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
@@ -300,9 +281,11 @@ func TestStorageGetAllByDayEventsEmpty(t *testing.T) {
 	queryGetByDay := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date = $1`, eventsTable)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
 
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).WithArgs(date).WillReturnRows(expectedRows)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByDay)).
+		WithArgs(date, date.AddDate(0, 0, 1).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByDayEvents(ctx, date)
 	require.NoError(t, err)
@@ -353,8 +336,10 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).
+		WithArgs(date, date.AddDate(0, 0, 7).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
@@ -384,8 +369,10 @@ func TestStorageGetAllByWeekEventsEmpty(t *testing.T) {
 	queryGetByWeek := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).WithArgs(date).WillReturnRows(expectedRows)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByWeek)).
+		WithArgs(date, date.AddDate(0, 0, 7).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByWeekEvents(ctx, date)
 	require.NoError(t, err)
@@ -446,8 +433,10 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).
+		WithArgs(date, date.AddDate(0, 1, 0).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)
@@ -477,8 +466,10 @@ func TestStorageGetAllByMonthEventsEmpty(t *testing.T) {
 	queryGetByMonth := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
-	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).WithArgs(date).WillReturnRows(expectedRows)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
+	mock.ExpectQuery(regexp.QuoteMeta(queryGetByMonth)).
+		WithArgs(date, date.AddDate(0, 1, 0).Add(-time.Nanosecond)).
+		WillReturnRows(expectedRows)
 
 	actualEvents, err := storage.GetAllByMonthEvents(ctx, date)
 	require.NoError(t, err)

@@ -218,6 +218,17 @@ func (h *HandlerHTTP) GetAllByDayEvents(c *gin.Context) {
 		return
 	}
 
+	parsedDate = time.Date(
+		parsedDate.Year(),
+		parsedDate.Month(),
+		parsedDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		parsedDate.Location(),
+	).UTC()
+
 	events, err := h.services.GetAllByDayEvents(c, parsedDate)
 	if err != nil {
 		message := "error getting events by day"
@@ -238,6 +249,17 @@ func (h *HandlerHTTP) GetAllByWeekEvents(c *gin.Context) {
 		return
 	}
 
+	parsedDate = time.Date(
+		parsedDate.Year(),
+		parsedDate.Month(),
+		parsedDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		parsedDate.Location(),
+	).UTC()
+
 	events, err := h.services.GetAllByWeekEvents(c, parsedDate)
 	if err != nil {
 		message := "error getting events by week"
@@ -257,6 +279,17 @@ func (h *HandlerHTTP) GetAllByMonthEvents(c *gin.Context) {
 		h.sentResponse(c, http.StatusBadRequest, resp)
 		return
 	}
+
+	parsedDate = time.Date(
+		parsedDate.Year(),
+		parsedDate.Month(),
+		parsedDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		parsedDate.Location(),
+	).UTC()
 
 	events, err := h.services.GetAllByMonthEvents(c, parsedDate)
 	if err != nil {
