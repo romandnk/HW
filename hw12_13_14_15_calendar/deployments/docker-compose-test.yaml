@@ -1,31 +1,32 @@
 version: "3.9"
-name: "calendar"
+name: "calendar_test"
 
 services:
   postgres:
+    container_name: "postgres_test"
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: "postgres"
+      POSTGRES_USER: "test"
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: "calendar_db"
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
-      calendar:
+      calendar_test:
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready", "-d", "calendar_db" ]
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_test:/var/lib/postgresql/data
 
   migration:
     build:
       context: ../.
       dockerfile: ./deployments/migration/Dockerfile
     environment:
-      DATABASE_URL: "postgres://postgres:1234@postgres:5432/calendar_db?sslmode=disable"
+      DATABASE_URL: "postgres://test:1234@postgres:5432/calendar_db?sslmode=disable"
     networks:
-      calendar:
+      calendar_test:
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,44 +36,43 @@ services:
       context: ../.
       dockerfile: ./deployments/calendar/Dockerfile
       args:
-        BUILD_VERSION: "develop"
+        BUILD_VERSION: "test"
     env_file:
-      - ../configs/calendar.env
+      - ../configs/calendar_test.env
     depends_on:
       - migration
     restart: always
     networks:
-      calendar:
+      calendar_test:
     ports:
-      - '8080:8080'
-      - '50051:50051'
-    volumes:
-      - log:/app/logging/
+      - '8081:8080'
+      - '50052:50051'
 
   rabbit:
+    container_name: "rabbit_test"
     image: rabbitmq:3.12-management-alpine
     restart: always
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     networks:
-      calendar:
+      calendar_test:
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
       interval: 5s
       timeout: 30s
       retries: 10
     ports:
-      - '5672:5672'
+      - '5673:5672'
 
   scheduler:
     build:
       context: ../.
       dockerfile: ./deployments/scheduler/Dockerfile
       args:
-        BUILD_VERSION: "develop"
+        BUILD_VERSION: "test"
     env_file:
-      - ../configs/scheduler.env
+      - ../configs/scheduler_test.env
     depends_on:
       rabbit:
         condition: service_healthy
@@ -80,16 +80,16 @@ services:
         condition: service_started
     restart: always
     networks:
-      calendar:
+      calendar_test:
 
   sender:
     build:
       context: ../.
       dockerfile: ./deployments/sender/Dockerfile
       args:
-        BUILD_VERSION: "develop"
+        BUILD_VERSION: "test"
     env_file:
-      - ../configs/sender.env
+      - ../configs/sender_test.env
     depends_on:
       rabbit:
         condition: service_healthy
@@ -97,11 +97,23 @@ services:
         condition: service_started
     restart: always
     networks:
-      calendar:
+      calendar_test:
+
+  integration_test:
+    build:
+      context: ../.
+      dockerfile: ./deployments/integration_test/Dockerfile
+    depends_on:
+      - postgres
+      - migration
+      - calendar
+      - scheduler
+      - sender
+    networks:
+      calendar_test:
 
 networks:
-  calendar:
+  calendar_test:
 
 volumes:
-  pgdata:
-  log:
+  pgdata_test:

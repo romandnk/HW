@@ -8,11 +8,18 @@ DOCKER_IMG="calendar:develop"
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
+up:
+	docker compose -f ./deployments/docker-compose.yaml up --build -d
+
+down:
+	docker compose -f ./deployments/docker-compose.yaml down && \
+	docker volume rm calendar_log calendar_pgdata
+
 build-calendar:
 	go build -v -o $(BIN_calendar) -ldflags "$(LDFLAGS)" ./cmd/calendar
 
 build-calendar-scheduler:
-	go build -v -o $(BIN_scheduler) ./cmd/calendar_scheduler
+	go build -o $(BIN_scheduler) ./cmd/calendar_scheduler
 
 build-calendar-sender:
 	go build -v -o $(BIN_sender) ./cmd/calendar_sender
@@ -52,6 +59,16 @@ version: build
 test:
 	go test -race ./internal/...
 
+integration-tests:
+	docker compose -f deployments/docker-compose-test.yaml up -d --build && \
+	docker wait calendar_test-integration_test-1 && \
+	docker compose -f deployments/docker-compose-test.yaml down && \
+    docker volume rm calendar_test_pgdata_test
+
+integration-tests-down:
+	docker compose -f deployments/docker-compose-test.yaml down && \
+    docker volume rm calendar_test_pgdata_test
+
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.53.3
 
@@ -59,16 +76,3 @@ lint: install-lint-deps
 	golangci-lint run ./...
 
 .PHONY: build run build-img run-img version test lint
-
-# local tests
-db:
-	docker run -d --name pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=1234 -e POSTGRES_DB=calendar_db -p 5432:5432 postgres:latest
-
-d:
-	docker stop pg && docker rm pg
-
-r:
-	docker run -d --hostname rabbitmq --name rmq -p 15672:15672 -p 5672:5672 rabbitmq:3-management
-
-dr:
-	docker stop rmq && docker rm rmq

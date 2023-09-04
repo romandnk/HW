@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/logger"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/mq/rabbitmq"
 	"github.com/romandnk/HW/hw12_13_14_15_calendar/internal/storage/postgres"
@@ -57,10 +56,6 @@ func NewConfig(path string) (*Config, error) {
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, fmt.Errorf("errors reading rabbit scheduler config file: %w", err)
-	}
-
-	if err := godotenv.Load("./configs/scheduler.env"); err != nil {
-		return nil, fmt.Errorf("errors loading scheduler.env: %w", err)
 	}
 
 	viper.SetEnvPrefix("scheduler")

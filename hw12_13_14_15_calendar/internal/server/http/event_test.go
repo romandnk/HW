@@ -776,7 +776,7 @@ func TestHandlerHTTPDeleteEventErrorDeletingEvent(t *testing.T) {
 }
 
 func TestHandlerHTTPGetAllEvents(t *testing.T) {
-	dateStr := "2023-07-22T12:00:00Z"
+	dateStr := "2023-07-22T00:00:00Z"
 	date, err := time.Parse(time.RFC3339, dateStr)
 	require.NoError(t, err)
 

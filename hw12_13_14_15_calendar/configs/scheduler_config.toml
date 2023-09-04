@@ -6,7 +6,7 @@ representation = "TEXT"
 type = "postgres"
 
 [storage.postgres]
-host = "localhost"
+host = "postgres"
 port  = "5432"
 db_name  = "calendar_db"
 sslmode = "disable"
@@ -16,7 +16,7 @@ max_conn_lifetime = "1h"
 max_conn_idle_time = "1m"
 
 [rabbit_scheduler]
-host = "localhost"
+host = "rabbit"
 port = 5672
 heartbeat = "30s"
 exchange_name = "notification"
@@ -31,4 +31,4 @@ delivery_mode     = 2
 
 [general_preferences]
 time_to_schedule = "5s"
-time_to_delete_outdated = "1h"
+time_to_delete_outdated = "5s"

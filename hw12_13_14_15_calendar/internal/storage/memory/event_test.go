@@ -3,6 +3,7 @@ package memorystorage
 import (
 	"context"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -128,13 +129,13 @@ func TestStorageDeleteOutdatedEvents(t *testing.T) {
 	ctx := context.Background()
 
 	st.events["id1"] = models.Event{
-		Date: time.Date(2022, 1, 1, 0, 0, 0, 0, time.Local),
+		Date: time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 	st.events["id2"] = models.Event{
-		Date: time.Date(2023, 1, 1, 0, 0, 0, 0, time.Local),
+		Date: time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 	st.events["id3"] = models.Event{
-		Date: time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local),
+		Date: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	err := st.DeleteOutdatedEvents(ctx)
@@ -150,12 +151,12 @@ func TestStorageGetAllByDayEvents(t *testing.T) {
 		totalDays int
 	}{
 		{
-			day:       time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local),
-			expected:  []time.Time{time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local)},
+			day:       time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC),
+			expected:  []time.Time{time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC)},
 			totalDays: 1,
 		},
 		{
-			day:       time.Date(1999, 12, 31, 0, 0, 0, 0, time.Local),
+			day:       time.Date(1999, 12, 31, 0, 0, 0, 0, time.UTC),
 			expected:  []time.Time{},
 			totalDays: 0,
 		},
@@ -194,7 +195,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 		totalDays int
 	}{
 		{
-			fromDay: time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				var eventsDate []time.Time
 				for i := 0; i < 7; i++ {
@@ -206,7 +207,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 			totalDays: 7,
 		},
 		{
-			fromDay: time.Date(1999, 12, 29, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(1999, 12, 29, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				var eventsDate []time.Time
 				day = day.AddDate(0, 0, 4)
@@ -219,7 +220,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 			totalDays: 3,
 		},
 		{
-			fromDay: time.Date(2000, 4, 6, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(2000, 4, 6, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				var eventsDate []time.Time
 				for i := 0; i < 5; i++ {
@@ -231,7 +232,7 @@ func TestStorageGetAllByWeekEvents(t *testing.T) {
 			totalDays: 5,
 		},
 		{
-			fromDay: time.Date(1999, 4, 6, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(1999, 4, 6, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				eventsDate := make([]time.Time, 0)
 				return eventsDate
@@ -275,32 +276,32 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 		totalDays int
 	}{
 		{
-			fromDay: time.Date(2000, 1, 2, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(2000, 1, 2, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				eventsDate := make([]time.Time, 0, 32)
-				for i := 0; i < 30; i++ {
+				for i := 0; i < 31; i++ {
 					eventsDate = append(eventsDate, day)
 					day = day.AddDate(0, 0, 1)
 				}
 				return eventsDate
 			},
-			totalDays: 30,
+			totalDays: 31,
 		},
 		{
-			fromDay: time.Date(1999, 12, 29, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(1999, 12, 29, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
-				eventsDate := make([]time.Time, 0, 32)
+				eventsDate := make([]time.Time, 0, 27)
 				day = day.AddDate(0, 0, 4)
-				for i := 0; i < 26; i++ {
+				for i := 0; i < 27; i++ {
 					eventsDate = append(eventsDate, day)
 					day = day.AddDate(0, 0, 1)
 				}
 				return eventsDate
 			},
-			totalDays: 26,
+			totalDays: 27,
 		},
 		{
-			fromDay: time.Date(2000, 4, 6, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(2000, 4, 6, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				eventsDate := make([]time.Time, 0, 32)
 				for i := 0; i < 5; i++ {
@@ -312,7 +313,7 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 			totalDays: 5,
 		},
 		{
-			fromDay: time.Date(1999, 4, 6, 0, 0, 0, 0, time.Local),
+			fromDay: time.Date(1999, 4, 6, 0, 0, 0, 0, time.UTC),
 			expected: func(day time.Time) []time.Time {
 				eventsDate := make([]time.Time, 0)
 				return eventsDate
@@ -343,8 +344,12 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 				actualDates = append(actualDates, events.Date)
 			}
 
+			sort.Slice(actualDates, func(i, j int) bool {
+				return actualDates[i].Before(actualDates[j])
+			})
+
+			require.Len(t, actualEvents, tc.totalDays)
 			require.ElementsMatch(t, expectedDates, actualDates)
-			require.Equal(t, tc.totalDays, len(actualEvents))
 		})
 	}
 }
@@ -352,7 +357,7 @@ func TestStorageGetAllByMonthEvents(t *testing.T) {
 func generateEvents(titleText string) []models.Event {
 	var events []models.Event
 
-	currentDate := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
+	currentDate := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	for i := 1; i <= 100; i++ {
 		currentDate = currentDate.AddDate(0, 0, 1)

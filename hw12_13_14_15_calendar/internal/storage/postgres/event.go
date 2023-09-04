@@ -145,11 +145,11 @@ func (s *Storage) DeleteEvent(ctx context.Context, id string) error {
 }
 
 func (s *Storage) DeleteOutdatedEvents(ctx context.Context) error {
-	now := time.Now().Format(time.RFC3339Nano)
+	date := time.Now().UTC().AddDate(-1, 0, 0)
 
-	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1::timestamp - interval '1 year'`, eventsTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE date < $1`, eventsTable)
 
-	_, err := s.db.Exec(ctx, query, now)
+	_, err := s.db.Exec(ctx, query, date)
 	if err != nil {
 		return customerror.CustomError{
 			Field:   "",
@@ -167,9 +167,9 @@ func (s *Storage) GetAllByDayEvents(ctx context.Context, date time.Time) ([]mode
 	query := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s 
-		WHERE date = $1`, eventsTable)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
 
-	rows, err := s.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date, date.AddDate(0, 0, 1).Add(-time.Nanosecond))
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
@@ -209,9 +209,9 @@ func (s *Storage) GetAllByWeekEvents(ctx context.Context, date time.Time) ([]mod
 	query := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '6 days'`, eventsTable)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
 
-	rows, err := s.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date, date.AddDate(0, 0, 7).Add(-time.Nanosecond))
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
@@ -251,9 +251,9 @@ func (s *Storage) GetAllByMonthEvents(ctx context.Context, date time.Time) ([]mo
 	query := fmt.Sprintf(`
 		SELECT id, title, date, duration, description, user_id, notification_interval
 		FROM %s 
-		WHERE date BETWEEN $1 AND $1 + INTERVAL '29 days'`, eventsTable)
+		WHERE date BETWEEN $1 AND $2`, eventsTable)
 
-	rows, err := s.db.Query(ctx, query, date)
+	rows, err := s.db.Query(ctx, query, date, date.AddDate(0, 1, 0).Add(-time.Nanosecond))
 	if err != nil {
 		return nil, customerror.CustomError{
 			Field:   "",
